@@ -1,84 +1,29 @@
 // Constants
 const gridClass = "back-grid";
 const gridCellSize = 50;
-const gridSize = 1000;
+const gridSize = 2000;
 const initialGridOffset = 100;
-// Globals
-var mouseDown = false;
 // Classes
 class FieldElement {
     /**
      * Default constructor to a element on field
      * @param {HTMLElement} element
+     * @param {Boolean} movable
      */
-    constructor(element) {
+    constructor(element, movable) {
         this.element = element;
-        this.transform = new ElementTransform(this);
+        this.transform = new ElementTransform(this, movable);
         //
-        element.addEventListener("mousedown", () => {
-            mouseDown = true;
-        });
-        element.addEventListener("mouseup", () => {
-            mouseDown = false;
-        });
-        element.addEventListener("mouseleave", () => {
-            mouseDown = false;
-        });
-        element.addEventListener("mousemove", (ev) => {
-            if (!element.style.transform) {
-                transform.setTransform();
-            }
-            //
-            if (ev.buttons & 1 != 0 || mouseDown) {
-                let freshX = this.transform.posX + ev.movementX;
-                this.element.setAttribute("a", freshX);
-                this.transform.setPosX(freshX);
-                if (freshX >= window.innerWidth / 2) { // Escaping to right
-                    let intervalId = setInterval(() => {
-                        this.transform.setPosX(this.transform.posX - .5);
-                        if (this.transform.posX <= window.innerWidth / 2) {
-                            this.transform.posX = window.innerWidth / 2;
-                            clearInterval(intervalId);
-                        }
-                    }, 16);
-                } else if (freshX <= window.innerWidth / 2 - gridSize) { // Escaped to left
-                    let intervalId = setInterval(() => {
-                        this.transform.setPosX(this.transform.posX + .5);
-                        if (this.transform.posX >= window.innerWidth / 2 - gridSize) {
-                            this.transform.posX = window.innerWidth / 2 - gridSize;
-                            clearInterval(intervalId);
-                        }
-                    }, 16);
-                }
-                let freshY = this.transform.posY + ev.movementY;
-                this.transform.setPosY(freshY);
-                if (freshY >= window.innerHeight / 2) { // Escaping to top
-                    let intervalId = setInterval(() => {
-                        this.transform.setPosY(this.transform.posY - .5);
-                        if (this.transform.posY <= window.innerHeight / 2) {
-                            this.transform.posY = window.innerHeight / 2;
-                            clearInterval(intervalId);
-                        }
-                    }, 16);
-                } else if (freshY <= window.innerHeight / 2 - gridSize) { // Escaped to bottom
-                    let intervalId = setInterval(() => {
-                        this.transform.setPosY(this.transform.posY + .5);
-                        if (this.transform.posY >= window.innerHeight / 2 - gridSize) {
-                            this.transform.posY = window.innerHeight / 2 - gridSize;
-                            clearInterval(intervalId);
-                        }
-                    }, 16);
-                }
-            }
-        });
+
     }
 }
 class ElementTransform {
     /**
      * Represent an object's transform to move it at the map
      * @param {FieldElement} element
+     * @param {Boolean} movable
      */
-    constructor(element) {
+    constructor(element, movable) {
         if (!element)
             return;
         this.fieldElement = element;
@@ -91,8 +36,57 @@ class ElementTransform {
         this.scaleY = 1;
         this.rotate = 0;
         // Setting
-        this.setPosX(this.element.offsetLeft);
-        this.setPosY(this.element.offsetTop);
+        this.setPosX(this.element.clientLeft);
+        this.setPosY(this.element.clientTop);
+        //
+        if (movable)
+            this.element.addEventListener("mousemove", (ev) => {
+                if (!this.element.style.transform) {
+                    transform.setTransform();
+                }
+                //
+                if (ev.buttons & 1 != 0) {
+                    let freshX = this.posX + ev.movementX;
+                    this.element.setAttribute("a", freshX);
+                    this.setPosX(freshX);
+                    if (freshX >= window.innerWidth / 2) { // Escaping to right
+                        let intervalId = setInterval(() => {
+                            this.setPosX(this.posX - .5);
+                            if (this.posX <= window.innerWidth / 2) {
+                                this.posX = window.innerWidth / 2;
+                                clearInterval(intervalId);
+                            }
+                        }, 16);
+                    } else if (freshX <= window.innerWidth / 2 - gridSize) { // Escaped to left
+                        let intervalId = setInterval(() => {
+                            this.setPosX(this.posX + .5);
+                            if (this.posX >= window.innerWidth / 2 - gridSize) {
+                                this.posX = window.innerWidth / 2 - gridSize;
+                                clearInterval(intervalId);
+                            }
+                        }, 16);
+                    }
+                    let freshY = this.posY + ev.movementY;
+                    this.setPosY(freshY);
+                    if (freshY >= window.innerHeight / 2) { // Escaping to top
+                        let intervalId = setInterval(() => {
+                            this.setPosY(this.posY - .5);
+                            if (this.posY <= window.innerHeight / 2) {
+                                this.posY = window.innerHeight / 2;
+                                clearInterval(intervalId);
+                            }
+                        }, 16);
+                    } else if (freshY <= window.innerHeight / 2 - gridSize) { // Escaped to bottom
+                        let intervalId = setInterval(() => {
+                            this.setPosY(this.posY + .5);
+                            if (this.posY >= window.innerHeight / 2 - gridSize) {
+                                this.posY = window.innerHeight / 2 - gridSize;
+                                clearInterval(intervalId);
+                            }
+                        }, 16);
+                    }
+                }
+            });
     }
     setPosX(posX) {
         this.posX = posX;
@@ -120,13 +114,17 @@ class ElementTransform {
 }
 // On Load
 window.addEventListener("load", (ev) => {
-    var element = document.getElementById("main-field");
-    var backGrid = new FieldElement(element);
+    let element = document.getElementById("main-field");
+    let parentElement = element.parentElement;
+    let backGrid = new FieldElement(element, false);
     backGrid.element.style.width = `${gridSize}px`;
     backGrid.element.style.height = `${gridSize}px`;
+    parentElement.style.width = `${1.125 * element.clientWidth}px`;
+    parentElement.style.height = `${1.125 * element.clientHeight}px`;
+    element.style.margin = `${.0625 * element.clientHeight}px ${.0625 * element.clientWidth}px`;
     makeGrid(backGrid, gridCellSize, gridCellSize);
-    backGrid.transform.setPosX(initialGridOffset);
-    backGrid.transform.setPosY(initialGridOffset);
+    // backGrid.transform.setPosX(initialGridOffset);
+    // backGrid.transform.setPosY(initialGridOffset);
 });
 // Functions
 /**
