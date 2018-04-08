@@ -1,0 +1,31 @@
+* {
+    margin: 0px;
+    padding: 0px;
+    box-sizing: border-box;
+    outline: none;
+    user-select: none;
+}
+
+:root {
+    --grid-box-shadow: 0px 0px 10px rgba(0, 0, 0, .5);
+}
+
+body {
+    overflow: hidden;
+}
+
+main {
+    background: gainsboro;
+    width: 620px;
+    height: 620px;
+    box-shadow: var(--grid-box-shadow);
+    overflow: hidden;
+}
+
+main > * {
+    position: absolute;
+}
+
+.back-grid {
+    border: 1px solid lightgray;
+}
