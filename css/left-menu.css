@@ -1,0 +1,97 @@
+:root {
+    --tiny-margin: 2px;
+    --small-margin: 3px;
+    --medium-margin: 6px;
+    --big-margin: 12px;
+    --huge-margin: 24px;
+    --grid-box-shadow: 0px 0px 10px rgba(0, 0, 0, .5);
+    --left-menu-width: 400px;
+    --connector-border-color: #a9a9a9;
+    --connector-border-weight: 5px;
+    --connector-size: 20px;
+    --small-interval: .3s;
+}
+
+#left-menu {
+    width: var(--left-menu-width);
+    height: 100%;
+    position: fixed;
+    background: white;
+    display: flex;
+    flex-flow: row;
+    z-index: 1;
+    padding: var(--medium-margin);
+    box-shadow: var(--grid-box-shadow);
+    transform: translateX(calc(var(--left-menu-width) * -.85 + 5 * var(--medium-margin)));
+    transition: transform .5s ease-in-out;
+}
+
+#item-selector {
+    background: whitesmoke;
+    margin-right: var(--medium-margin);
+    border-radius: var(--medium-margin);
+    height: 100%;
+    width: 80%;
+    padding: var(--big-margin);
+}
+
+#right-buttons {
+    border-radius: var(--medium-margin);
+    width: 20%;
+    display: flex;
+    flex-flow: column;
+    padding: var(--medium-margin);
+}
+
+#right-buttons a {
+    color: dimgray;
+    vertical-align: middle;
+    width: 100%;
+    height: 68px;
+    background: gainsboro;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: xx-large;
+    border-radius: 100%;
+}
+
+.circuit-element {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    border-radius: var(--medium-margin);
+    background-color: gainsboro;
+    transition: background-color var(--small-interval) ease-in;
+}
+
+.circuit-element:hover {
+    cursor: pointer;
+    background-color: gray;
+}
+
+.circuit-element:hover img, .circuit-element:hover > div {
+    filter: brightness(2);
+}
+
+.circuit-element > div {
+    transition: filter var(--small-interval) ease-in;
+}
+
+.circuit-element img {
+    padding: var(--huge-margin);
+    transition: filter var(--small-interval) ease-in;
+}
+
+.connector {
+    width: var(--connector-size);
+    height: var(--connector-size);
+    border-radius: 100%;
+    border: var(--connector-border-color) var(--connector-border-weight) solid;
+}
+
+.left-menu-shown {
+    transform: unset !important;
+}
