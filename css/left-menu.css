@@ -81,6 +81,7 @@
 }
 
 .circuit-element img {
+    width: 85%;
     padding: var(--huge-margin);
     transition: filter var(--small-interval) ease-in;
 }

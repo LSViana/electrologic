@@ -46,8 +46,8 @@ class CircuitElementDescriptor {
 // Available Circuit Elements
 const circuitDescriptors = [
     new CircuitElementDescriptor("and", "./svg/and-gate.svg", "AND Gate", [
-        { x: "11%", y: "33%" },
-        { x: "11%", y: "52%" },
+        { x: "10%", y: "33%" },
+        { x: "10%", y: "52%" },
         { x: "82%", y: "42%" }
     ])
 ];
@@ -148,7 +148,8 @@ function buildElement(element, descriptor) {
         let div = document.createElement("div");
         div.style.position = "absolute";
         div.classList.add(connectorClass);
-        div.style.left = connector.x;
+        div.style.left = `calc(${connector.x} - ${div.clientWidth / 2}px)`;
+        div.style.top = `calc(${connector.y} - ${div.clientHeight / 2}px)`;
         div.style.top = connector.y;
         element.appendChild(div);
     }
