@@ -9,8 +9,8 @@
     --connector-border-color: #a9a9a9;
     --connector-border-weight: 5px;
     --connector-size: 20px;
-    --field-connector-color: dodgerblue;
-    --field-connector-color-active: cyan;
+    --field-connector-color: darkgray;
+    --field-connector-color-active: dodgerblue;
     --small-interval: .3s;
 }
 
@@ -56,78 +56,6 @@
     align-items: center;
     font-size: xx-large;
     border-radius: 100%;
-}
-
-.circuit-element {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 125px;
-    /* width: 100%; */
-    width: 273px;
-    border-radius: var(--medium-margin);
-    background-color: lightgray;
-    transition: background-color var(--small-interval) ease-in;
-}
-
-.circuit-element:hover {
-    cursor: pointer;
-    background-color: gray;
-}
-
-.circuit-element:hover img, .circuit-element:hover > div {
-    filter: brightness(2);
-}
-
-.circuit-element > div {
-    transition: filter var(--small-interval) ease-in;
-}
-
-.circuit-element img {
-    width: 85%;
-    height: 100%;
-    padding: var(--huge-margin);
-    transition: filter var(--small-interval) ease-in;
-}
-
-.circuit-element-field {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 125px;
-    /* width: 100%; */
-    width: 273px;
-    border-radius: var(--medium-margin);
-    background-color: rgba(0, 0, 0, 0);
-    transition: background-color var(--small-interval) ease-in;
-}
-
-.circuit-element-field:hover {
-    cursor: pointer;
-    background-color: dimgray;
-}
-
-.circuit-element-field img {
-    width: 85%;
-    height: 100%;
-    padding: var(--huge-margin);
-}
-
-.circuit-element-field .connector {
-    border-color: var(--field-connector-color);
-    transition: border-color var(--small-interval) ease-in;
-}
-
-.circuit-element-field .connector:hover {
-    border-color: var(--field-connector-color-active);
-}
-
-.connector {
-    width: var(--connector-size);
-    height: var(--connector-size);
-    border-radius: 100%;
-    border: var(--connector-border-color) var(--connector-border-weight) solid;
 }
 
 .left-menu-shown {

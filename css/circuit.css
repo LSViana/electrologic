@@ -1,0 +1,94 @@
+:root {
+    --tiny-margin: 2px;
+    --small-margin: 3px;
+    --medium-margin: 6px;
+    --big-margin: 12px;
+    --huge-margin: 24px;
+    --grid-box-shadow: 0px 0px 10px rgba(0, 0, 0, .5);
+    --left-menu-width: 400px;
+    --connector-border-color: #a9a9a9;
+    --connector-border-weight: 5px;
+    --connector-size: 20px;
+    --field-connector-color: darkgray;
+    --field-connector-color-active: dodgerblue;
+    --field-connection: dimgray;
+    --small-interval: .3s;
+}
+
+.circuit-element {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 125px;
+    /* width: 100%; */
+    width: 273px;
+    border-radius: var(--medium-margin);
+    background-color: lightgray;
+    transition: background-color var(--small-interval) ease-in;
+}
+
+.circuit-element:hover {
+    cursor: pointer;
+    background-color: gray;
+}
+
+.circuit-element:hover img, .circuit-element:hover > div {
+    filter: brightness(2);
+}
+
+.circuit-element > div {
+    transition: filter var(--small-interval) ease-in;
+}
+
+.circuit-element img {
+    width: 85%;
+    height: 100%;
+    padding: var(--huge-margin);
+    transition: filter var(--small-interval) ease-in;
+}
+
+.circuit-element-field {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 125px;
+    /* width: 100%; */
+    width: 273px;
+    border-radius: var(--medium-margin);
+    z-index: 2;
+    background-color: rgba(0, 0, 0, 0);
+    transition: background-color var(--small-interval) ease-in;
+}
+
+.circuit-element-field:hover {
+    cursor: pointer;
+    background-color: rgb(141, 141, 141);
+}
+
+.circuit-element-field img {
+    width: 85%;
+    height: 100%;
+    padding: var(--huge-margin);
+}
+
+.circuit-element-field .connector {
+    border-color: var(--field-connector-color);
+    transition: border-color var(--small-interval) ease-in;
+}
+
+.circuit-element-field .connector:hover {
+    border-color: var(--field-connector-color-active);
+}
+
+.connection {
+    border-radius: 1000px;
+    border: var(--medium-margin) var(--field-connection) solid;
+}
+
+.connector {
+    width: var(--connector-size);
+    height: var(--connector-size);
+    border-radius: 100%;
+    border: var(--connector-border-color) var(--connector-border-weight) solid;
+}
