@@ -9,12 +9,14 @@
     --connector-border-color: #a9a9a9;
     --connector-border-weight: 5px;
     --connector-size: 20px;
+    --field-connector-color: dodgerblue;
+    --field-connector-color-active: cyan;
     --small-interval: .3s;
 }
 
 #left-menu {
     width: var(--left-menu-width);
-    height: 100%;
+    height: 100vh;
     position: fixed;
     background: white;
     display: flex;
@@ -27,7 +29,7 @@
 }
 
 #item-selector {
-    background: whitesmoke;
+    background: gainsboro;
     margin-right: var(--medium-margin);
     border-radius: var(--medium-margin);
     height: 100%;
@@ -61,9 +63,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
+    height: 125px;
+    /* width: 100%; */
+    width: 273px;
     border-radius: var(--medium-margin);
-    background-color: gainsboro;
+    background-color: lightgray;
     transition: background-color var(--small-interval) ease-in;
 }
 
@@ -82,8 +86,41 @@
 
 .circuit-element img {
     width: 85%;
+    height: 100%;
     padding: var(--huge-margin);
     transition: filter var(--small-interval) ease-in;
+}
+
+.circuit-element-field {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 125px;
+    /* width: 100%; */
+    width: 273px;
+    border-radius: var(--medium-margin);
+    background-color: rgba(0, 0, 0, 0);
+    transition: background-color var(--small-interval) ease-in;
+}
+
+.circuit-element-field:hover {
+    cursor: pointer;
+    background-color: dimgray;
+}
+
+.circuit-element-field img {
+    width: 85%;
+    height: 100%;
+    padding: var(--huge-margin);
+}
+
+.circuit-element-field .connector {
+    border-color: var(--field-connector-color);
+    transition: border-color var(--small-interval) ease-in;
+}
+
+.circuit-element-field .connector:hover {
+    border-color: var(--field-connector-color-active);
 }
 
 .connector {
