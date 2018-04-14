@@ -83,7 +83,7 @@
 
 .connection {
     border-radius: 1000px;
-    border: var(--medium-margin) var(--field-connection) solid;
+    background-color: var(--field-connection);
 }
 
 .connector {

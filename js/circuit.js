@@ -2,7 +2,10 @@
 const connectorClass = "connector";
 const connectionClass = "connection";
 const connectorIndexAttribute = "data-connector-index";
+const connectionIndexAttribute = "data-connection-index";
 const elementDemonstrationClass = "demo";
+const connectionWidth = 12;
+const connectionWidthText = `${connectionWidth}px`;
 /**
  * Class to represent circuit element
  */
@@ -38,6 +41,7 @@ class CircuitElementDescriptor {
 class CircuitConnection {
     /**
      * Creating a new Circuit Connection that makes the bindings between circuit elements
+     * @param {String} connectionId
      * @param {String} originId
      * @param {Number} originConnectorId 
      * @param {Number} originIndex 
@@ -45,7 +49,8 @@ class CircuitConnection {
      * @param {Number} destinyConnectorId 
      * @param {Number} destinyIndex 
      */
-    constructor(originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex) {
+    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex) {
+        this.connectionId = connectionId;
         this.originId = originId;
         this.originConnectorId = originConnectorId;
         this.originIndex = originIndex;
@@ -76,6 +81,8 @@ var connections = new Array();
  * @type {HTMLElement}
  */
 var mainField = {};
+//
+var lastDragButtons = 0, lastDragX = 0, lastDragY = 0;
 
 // Available Circuit Elements
 const circuitDescriptors = [
@@ -95,8 +102,9 @@ function loadElementIds() {
         let circuitDescriptor = circuitDescriptors[circuitDescriptorIndex];
         elementIds[circuitDescriptor.gateCode] = 1;
     }
-    // Adding connector ID counter
+    // Adding custom ID counters
     elementIds[connectorClass] = 1;
+    elementIds[connectionClass] = 1;
 };
 loadElementIds();
 
@@ -211,8 +219,59 @@ function buildElement(element, descriptor) {
         div.addEventListener("click", handleConnectorClick);
         element.appendChild(div);
     }
+    // Adding custom changes
+    if (!element.getAttribute(elementDemonstrationClass)) {
+        element.addEventListener("dragstart", (ev) => {
+            ev.dataTransfer.effectAllowed = "move";
+            ev.dataTransfer.setData("object", this);
+            lastDragX = ev.screenX;
+            lastDragY = ev.screenY;
+            lastDragButtons = ev.buttons;
+        });
+        element.addEventListener("dragend", handleElementDragEnd);
+        let mo = new MutationObserver(handleChanges);
+        mo.observe(element, { attributeFilter: ["style"] });
+    }
     //
     elements[element.id] = descriptor;
+}
+
+/**
+ * Method used to handle changes at Circuit Elements at Field
+ * @param {Array} mutationList 
+ */
+function handleChanges(mutationList) {
+    for (let mutationIndex in mutationList) {
+        /**
+         * @type {MutationRecord}
+         */
+        let mutation = mutationList[mutationIndex];
+        let targetId = mutation.target.id;
+        let _connections = connections.filter((value) => { return (value.originId == targetId || value.destinyId == targetId) });
+        for(let connection of connections) {
+            updateConnection(connection);
+        }
+    }
+}
+
+/**
+ * Handle the MouseMove events at Circuit Elements
+ * @param {DragEvent} event 
+ */
+function handleElementDragEnd(event) {
+    if ((lastDragButtons & 1) != 0) {
+        /**
+         * @type {HTMLElement}
+         */
+        let current = this;
+        let left = pxToNumber(current.style.left) + (event.screenX - lastDragX), top = pxToNumber(current.style.top) + (event.screenY - lastDragY);
+        if (left < 0)
+            left = 0;
+        if (top < 0)
+            top = 0;
+        current.style.left = `${left}px`;
+        current.style.top = `${top}px`;
+    }
 }
 
 /**
@@ -226,6 +285,8 @@ function handleConnectorClick(event) {
     let current = this;
     if (current.parentElement.getAttribute(elementDemonstrationClass))
         return;
+    if (!currentConnection.connectionId)
+        currentConnection.connectionId = getId(connectionClass);
     if (currentConnection.originId) {
         // Connection already exists
         if (currentConnection.originId == current.parentElement.id) {
@@ -252,69 +313,90 @@ function handleConnectorClick(event) {
  * @param {CircuitConnection} connection 
  */
 function buildConnection(connection) {
+    let div1 = document.createElement("div");
+    let div2 = document.createElement("div");
+    let div3 = document.createElement("div");
+    div1.classList.add(connection.connectionId);
+    div2.classList.add(connection.connectionId);
+    div3.classList.add(connection.connectionId);
+    div1.setAttribute(connectionIndexAttribute, 0);
+    div2.setAttribute(connectionIndexAttribute, 1);
+    div3.setAttribute(connectionIndexAttribute, 2);
+    mainField.appendChild(div1);
+    mainField.appendChild(div2);
+    mainField.appendChild(div3);
+    //#region DIV1
+    updateConnection(connection);
+}
+
+/**
+ * Update positions at CircuitConnection elements
+ * @param {CircuitConnection} connection 
+ */
+function updateConnection(connection) {
     let originConnector = document.getElementById(connection.originConnectorId);
     let destinyConnector = document.getElementById(connection.destinyConnectorId);
     let originBounds = originConnector.getBoundingClientRect();
     let destinyBounds = destinyConnector.getBoundingClientRect();
+    var mainBounds = mainField.getBoundingClientRect();
     let invertVertically = false, invertHorizontally = false;
-    let originComputed = window.getComputedStyle(originConnector), destinyComputed = window.getComputedStyle(destinyConnector);
-    // Building connection graphically
-    let originX = pxToNumber(originComputed.left), originY = pxToNumber(originComputed.top);
-    let destinyX = pxToNumber(destinyComputed.left), destinyY = pxToNumber(destinyComputed.top);
-    //#region DIV1
-    let div1 = document.createElement("div");
+    let divs = Array.from(document.getElementsByClassName(connection.connectionId));
+    let div1 = divs.filter((value) => { return value.getAttribute(connectionIndexAttribute) == "0"; })[0];
+    let div2 = divs.filter((value) => { return value.getAttribute(connectionIndexAttribute) == "1"; })[0];
+    let div3 = divs.filter((value) => { return value.getAttribute(connectionIndexAttribute) == "2"; })[0];
     div1.style.position = "absolute";
-    let div1Width = Math.abs((pxToNumber(destinyConnector.parentElement.style.left) + destinyX) - (pxToNumber(originConnector.parentElement.style.left) + originX)) / 2 + originConnector.clientWidth;
-    let div1Left = pxToNumber(originConnector.parentElement.style.left) + originX + pxToNumber(originComputed.borderTopWidth);
-    let div1Top = pxToNumber(originConnector.parentElement.style.top) + originY + pxToNumber(originComputed.borderTopWidth);
-    if(invertHorizontally = (originBounds.x > destinyBounds.x)) {
+    let div1Width = Math.abs(originBounds.x - destinyBounds.x) / 2 + connectionWidth;
+    let div1Left = originBounds.x - mainBounds.x + originBounds.width / 4;
+    let div1Top = originBounds.y - mainBounds.y + originBounds.height / 4;
+    if (invertHorizontally = (originBounds.x > destinyBounds.x)) {
         div1Left -= div1Width;
         div1Left += originConnector.clientHeight;
     }
     div1.style.width = `${div1Width}px`;
+    div1.style.height = connectionWidthText;
     div1.style.left = `${div1Left}px`;
     div1.style.top = `${div1Top}px`;
-    div1.classList.add(connectionClass);
     mainField.appendChild(div1);
     //#endregion
     //#region DIV2
-    let div2 = document.createElement("div");
     div2.style.position = "absolute";
-    let div2Height = Math.round(Math.abs((pxToNumber(destinyConnector.parentElement.style.top) + destinyY) - (pxToNumber(originConnector.parentElement.style.top) + originY)) + originConnector.clientHeight);
-    let div2Left = pxToNumber(div1.style.left);
-    let div2Top = pxToNumber(originConnector.parentElement.style.top) + originY + originConnector.clientHeight / 2;
+    let div2Height = Math.abs(originBounds.y - destinyBounds.y) + originBounds.height / 2;
+    let div2Left = div1Left;
+    let div2Top = div1Top;
     //
-    if(invertVertically = (originBounds.y > destinyBounds.y)) {
+    if (invertVertically = (originBounds.y > destinyBounds.y)) {
         div2Top -= div2Height;
         div2Top += originConnector.clientHeight;
     }
-    if(!invertHorizontally) {
-        div2Left += pxToNumber(div1.style.width) - originBounds.width / 2;
+    if (!invertHorizontally) {
+        div2Left += div1Width - connectionWidth;
     }
     //
     div2.style.height = `${div2Height}px`;
+    div2.style.width = connectionWidthText;
     div2.style.left = `${div2Left}px`;
     div2.style.top = `${div2Top}px`;
-    div2.classList.add(connectionClass);
     mainField.appendChild(div2);
     //#endregion
     //#region DIV3
-    let div3 = document.createElement("div");
     div3.style.position = "absolute";
     let div3Left = pxToNumber(div2.style.left);
     let div3Top = pxToNumber(div2.style.top);
-    if(!invertVertically) {
-        div3Top += div2.clientHeight;
+    if (!invertVertically) {
+        div3Top += div2.clientHeight - connectionWidth;
     }
-    if(invertHorizontally) {
+    if (invertHorizontally) {
         div3Left -= div1Width - originBounds.width / 2;
     }
     div3.style.width = div1.style.width;
+    div3.style.height = connectionWidthText;
     div3.style.left = `${div3Left}px`;
     div3.style.top = `${div3Top}px`;
-    div3.classList.add(connectionClass);
     mainField.appendChild(div3);
     //#endregion
+    div1.classList.add(connectionClass);
+    div2.classList.add(connectionClass);
+    div3.classList.add(connectionClass);
 }
 
 // Utilities
