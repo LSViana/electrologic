@@ -1,12 +1,22 @@
 // Types and Classes Definitions
 const connectorClass = "connector";
 const connectionClass = "connection";
+const activeConnectionOptions = "connection-options-active";
+const activeConnectionClass = "connection-active";
+const mainFieldInsertingClass = "main-field-inserting";
 const activeElementClass = "element-active";
 const connectorIndexAttribute = "data-connector-index";
 const connectionIndexAttribute = "data-connection-index";
 const elementDemonstrationClass = "demo";
 const connectionWidth = 12;
 const connectionWidthText = `${connectionWidth}px`;
+// Dummy element used to hide Drag and Drop previews
+const dummyElement = document.createElement("div");
+dummyElement.style.position = "absolute";
+dummyElement.style.width = dummyElement.style.height = "1px";
+dummyElement.style.left = dummyElement.style.top = "-1px";
+document.body.appendChild(dummyElement);
+
 /**
  * Class to represent circuit element
  */
@@ -86,6 +96,10 @@ var connections = new Array();
  * @type {HTMLElement}
  */
 var mainField = {};
+/**
+ * @type {HTMLElement}
+ */
+var connectionOptions = {};
 //
 var lastDragButtons = 0,
     lastPosX = 0,
@@ -131,6 +145,7 @@ window.addEventListener("load", initializeWindow);
 function initializeWindow() {
     // Getting Main Field to configure element insertion
     mainField = document.querySelector("#main-field");
+    connectionOptions = document.querySelector("#connection-options");
     mainField.addEventListener("click", handleClickMainField);
     // Initializing Circuit Elements
     let circuitElements = Array.from(document.querySelectorAll(".circuit-element"));
@@ -165,12 +180,8 @@ function getDescriptor(dataCode) {
  * @param {MouseEvent} event 
  */
 function handleClickMainField(event) {
-    // Verifying element moving
-    if (currentFieldElement) {
-        lastDragButtons = 1;
-        handleElementDragEnd.bind(currentFieldElement, event)();
-        currentFieldElement = null;
-    }
+    // Removing any select connection
+    selectConnection(null);
     // Verifying element insertion
     if (currentInsertingElement.element) {
         let div = document.createElement("div");
@@ -179,8 +190,8 @@ function handleClickMainField(event) {
         div.setAttribute("data-code", currentInsertingElement.circuitDescriptor.gateCode);
         div.style.position = "absolute";
         mainField.appendChild(div);
-        div.style.left = `${event.x - pxToNumber(mainField.style.margin) - div.clientWidth / 2}px`;
-        div.style.top = `${event.y - pxToNumber(mainField.style.margin) - div.clientHeight / 2}px`;
+        div.style.left = `${event.layerX - div.clientWidth / 2}px`;
+        div.style.top = `${event.layerY - div.clientHeight / 2}px`;
         buildElement(div, currentInsertingElement.circuitDescriptor);
         currentInsertingElement.circuitDescriptor = currentInsertingElement.element = null;
     }
@@ -224,7 +235,6 @@ function isCorrectDescriptor(descriptor) {
  * @param {CircuitElementDescriptor} descriptor
  */
 function buildElement(element, descriptor) {
-    makeMobileDraggable(element);
     // Creating <img> element
     let img = document.createElement("img");
     img.setAttribute("src", descriptor.gatePath);
@@ -247,15 +257,9 @@ function buildElement(element, descriptor) {
     }
     // Adding custom changes
     if (!element.getAttribute(elementDemonstrationClass)) {
-        element.addEventListener("dragstart", (ev) => {
-            ev.dataTransfer.effectAllowed = "move";
-            ev.dataTransfer.setData("object", this);
-            lastPosX = ev.screenX;
-            lastPosY = ev.screenY;
-            lastDragButtons = ev.buttons;
-        });
+        makeMobileDraggable(element);
+        makeDesktopDraggable(element);
         element.addEventListener("click", handleElementClick);
-        element.addEventListener("dragend", handleElementDragEnd);
         let mo = new MutationObserver(handleChanges);
         mo.observe(element, {
             attributeFilter: ["style"]
@@ -273,19 +277,21 @@ function makeMobileDraggable(element) {
     element.setAttribute("draggable", true);
     let dragSource;
     element.addEventListener("touchstart", (ev) => {
-        if(element.getAttribute("draggable")) {
+        if (element.getAttribute("draggable")) {
             dragSource = element;
             return false;
         }
-    }, { passive: true });
-    let lastTouchX = -1, lastTouchY = -1;
+    }, {
+        passive: true
+    });
+    let lastTouchX = -1,
+        lastTouchY = -1;
     element.addEventListener("touchmove", (ev) => {
-        if(element == dragSource) {
+        if (element == dragSource) {
             let touch = ev.touches[0];
-            if(lastTouchX == -1 || lastTouchY == -1) {
+            if (lastTouchX == -1 || lastTouchY == -1) {
                 // Nothing before initializing
-            }
-            else {
+            } else {
                 element.style.left = `${pxToNumber(element.style.left) + (touch.clientX - lastTouchX)}px`;
                 element.style.top = `${pxToNumber(element.style.top) + (touch.clientY - lastTouchY)}px`;
             }
@@ -295,11 +301,53 @@ function makeMobileDraggable(element) {
         }
     });
     element.addEventListener("touchend", (ev) => {
-        if(element == dragSource) {
+        if (element == dragSource) {
             dragSource = null;
             return false;
         }
     });
+}
+
+/**
+ * Makes an element draggable at Desktop Platforms
+ * @param {HTMLElement} element 
+ */
+function makeDesktopDraggable(element) {
+    let lastTouchX = -1,
+        lastTouchY = -1;
+    element.addEventListener("dragstart", (ev) => {
+        ev.preventDefault();
+        return false;
+    });
+    element.addEventListener("mousedown", (ev) => {
+        let rect = element.getBoundingClientRect();
+        lastTouchX = ev.screenX;
+        lastTouchY = ev.screenY;
+    });
+    element.addEventListener("mousemove", (ev) => {
+        if ((ev.buttons & 1) != 0) {
+            element.style.zIndex = "1000";
+            if (lastTouchX != -1 && lastTouchY != -1) {
+                moveAt(ev.screenX, ev.screenY);
+            }
+            lastTouchX = ev.screenX;
+            lastTouchY = ev.screenY;
+        }
+    });
+    element.addEventListener("mouseup", () => {
+        element.style.zIndex = "";
+    });
+
+    function moveAt(posX, posY) {
+        let x = (posX - lastTouchX) + element.offsetLeft,
+            y = (posY - lastTouchY) + element.offsetTop;
+        if (x < 0)
+            x = 0;
+        if (y < 0)
+            y = 0;
+        element.style.left = x + 'px';
+        element.style.top = y + 'px';
+    }
 }
 
 /**
@@ -323,7 +371,7 @@ function handleChanges(mutationList) {
 }
 
 /**
- * Handle element click operation
+ * Handles element click operation
  * @param {MouseEvent} event 
  */
 function handleElementClick(event) {
@@ -336,27 +384,6 @@ function handleElementClick(event) {
         lastPosY = event.screenY;
         currentFieldElement = this;
         currentFieldElement.classList.add(activeElementClass);
-    }
-}
-
-/**
- * Handle the MouseMove events at Circuit Elements
- * @param {DragEvent} event 
- */
-function handleElementDragEnd(event) {
-    if ((lastDragButtons & 1) != 0) {
-        /**
-         * @type {HTMLElement}
-         */
-        let current = this;
-        let left = pxToNumber(current.style.left) + (event.screenX - lastPosX),
-            top = pxToNumber(current.style.top) + (event.screenY - lastPosY);
-        if (left < 0)
-            left = 0;
-        if (top < 0)
-            top = 0;
-        current.style.left = `${left}px`;
-        current.style.top = `${top}px`;
     }
 }
 
@@ -382,7 +409,7 @@ function handleConnectorClick(event) {
             // Connection done
             connections.push(currentConnection);
             buildConnection(currentConnection);
-            // Reset the connect operation
+            // Reset the connect operation and focus mainField to remove any :hover at mobile platforms
             currentConnection = new CircuitConnection();
         }
     } else {
@@ -400,17 +427,58 @@ function buildConnection(connection) {
     let div1 = document.createElement("div");
     let div2 = document.createElement("div");
     let div3 = document.createElement("div");
-    div1.classList.add(connection.connectionId);
-    div2.classList.add(connection.connectionId);
-    div3.classList.add(connection.connectionId);
-    div1.setAttribute(connectionIndexAttribute, 0);
-    div2.setAttribute(connectionIndexAttribute, 1);
-    div3.setAttribute(connectionIndexAttribute, 2);
-    mainField.appendChild(div1);
-    mainField.appendChild(div2);
-    mainField.appendChild(div3);
+    let divs = [div1, div2, div3];
+    let divIndex = 0;
+    for (let div of divs) {
+        div.addEventListener("click", handleConnectionClick);
+        div.classList.add(connection.connectionId);
+        div.setAttribute(connectionIndexAttribute, divIndex++);
+        mainField.appendChild(div);
+    }
     //#region DIV1
     updateConnection(connection);
+}
+
+let activeConnection;
+/**
+ * Handle click events at connections
+ * @param {MouseEvent} ev 
+ */
+function handleConnectionClick(ev) {
+    let connectionId;
+    for (let className of this.classList) {
+        if (className.indexOf(`${connectionClass}-`) != -1 && Number.parseInt(className.substr(connectionClass.length + 1))) {
+            connectionId = className;
+        }
+    }
+    selectConnection(connectionId);
+    ev.stopPropagation();
+}
+
+/**
+ * Select the divs correspoding to this connection
+ * @param {String} connectionId 
+ */
+function selectConnection(connectionId) {
+    if (connectionId) {
+        let divs = Array.from(document.querySelectorAll(`.${connectionId}`));
+        if (activeConnection == connectionId) {
+
+        } else {
+            selectConnection(null);
+            for (let div of divs) {
+                div.classList.add(activeConnectionClass);
+            }
+        }
+        connectionOptions.classList.add(activeConnectionOptions);
+    } else {
+        let divs = Array.from(document.querySelectorAll(`.${activeConnectionClass}`));
+        for (let div of divs) {
+            div.classList.remove(activeConnectionClass);
+        }
+        connectionOptions.classList.remove(activeConnectionOptions);
+    }
+    activeConnection = connectionId;
 }
 
 /**
@@ -436,15 +504,21 @@ function updateConnection(connection) {
         return value.getAttribute(connectionIndexAttribute) == "2";
     })[0];
     div1.style.position = "absolute";
+    let div1Height = connectionWidth;
     let div1Width = Math.abs(originBounds.x - destinyBounds.x) / 2 + connectionWidth;
     let div1Left = originBounds.x - mainBounds.x + originBounds.width / 4;
     let div1Top = originBounds.y - mainBounds.y + originBounds.height / 4;
     if (invertHorizontally = (originBounds.x > destinyBounds.x)) {
-        div1Left -= div1Width;
-        div1Left += originConnector.clientHeight;
+        div1Height = Math.abs(originBounds.y - destinyBounds.y) / 2;
+        div1Width = connectionWidth;
     }
+    if (invertVertically = (originBounds.y > destinyBounds.y)) {
+        if (invertHorizontally) {
+            div1Top -= div1Height - connectionWidth;
+        }
+    }
+    div1.style.height = `${div1Height}px`;
     div1.style.width = `${div1Width}px`;
-    div1.style.height = connectionWidthText;
     div1.style.left = `${div1Left}px`;
     div1.style.top = `${div1Top}px`;
     mainField.appendChild(div1);
@@ -454,33 +528,52 @@ function updateConnection(connection) {
     let div2Height = Math.abs(originBounds.y - destinyBounds.y) + originBounds.height / 2;
     let div2Left = div1Left;
     let div2Top = div1Top;
+    let div2Width = connectionWidth;
     //
-    if (invertVertically = (originBounds.y > destinyBounds.y)) {
+    if (invertVertically) {
         div2Top -= div2Height;
         div2Top += originConnector.clientHeight;
     }
     if (!invertHorizontally) {
         div2Left += div1Width - connectionWidth;
+    } else {
+        div2Top = div1Top + div1Height - connectionWidth;
+        div2Height = connectionWidth;
+        div2Width = Math.abs(originBounds.x - destinyBounds.x) + connectionWidth;
+        div2Left -= div2Width - connectionWidth;
+    }
+    if (invertVertically) {
+        div2Top -= div1Height - connectionWidth;
     }
     //
     div2.style.height = `${div2Height}px`;
-    div2.style.width = connectionWidthText;
+    div2.style.width = `${div2Width}px`;
     div2.style.left = `${div2Left}px`;
     div2.style.top = `${div2Top}px`;
     mainField.appendChild(div2);
     //#endregion
     //#region DIV3
     div3.style.position = "absolute";
-    let div3Left = pxToNumber(div2.style.left);
-    let div3Top = pxToNumber(div2.style.top);
+    let div3Left = div2Left;
+    let div3Top = div2Top;
+    let div3Height = div1Height;
     if (!invertVertically) {
         div3Top += div2.clientHeight - connectionWidth;
     }
     if (invertHorizontally) {
         div3Left -= div1Width - originBounds.width / 2;
+        div3Height += 2 * connectionWidth;
+    }
+    if (invertVertically) {
+        if (invertHorizontally) {
+            div3Top -= div1Height + connectionWidth;
+            div3Height = div1Height + 2 * connectionWidth;
+        } else {
+            div3Height = div1Height;
+        }
     }
     div3.style.width = div1.style.width;
-    div3.style.height = connectionWidthText;
+    div3.style.height = `${div3Height}px`;
     div3.style.left = `${div3Left}px`;
     div3.style.top = `${div3Top}px`;
     mainField.appendChild(div3);

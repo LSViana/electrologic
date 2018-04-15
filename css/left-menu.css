@@ -14,6 +14,14 @@
     --small-interval: .3s;
 }
 
+#connection-options {
+    display: none;
+}
+
+#connection-options.connection-options-active {
+    display: unset !important;
+}
+
 #left-menu {
     width: var(--left-menu-width);
     height: 100vh;
@@ -56,6 +64,10 @@
     align-items: center;
     font-size: xx-large;
     border-radius: 100%;
+}
+
+#right-buttons > *:not(:first-child) {
+    margin-top: var(--medium-margin);
 }
 
 .left-menu-shown {

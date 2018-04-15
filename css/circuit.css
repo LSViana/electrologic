@@ -13,6 +13,7 @@
     --field-connector-color-active: dodgerblue;
     --field-connection: dimgray;
     --small-interval: .3s;
+    --tiny-interval: .2s;
 }
 
 .circuit-element {
@@ -84,6 +85,11 @@
 .connection {
     border-radius: 1000px;
     background-color: var(--field-connection);
+    transition: background-color var(--tiny-interval) ease-in;
+}
+
+.connection-active {
+    background-color: var(--field-connector-color-active) !important;
 }
 
 .connector {
