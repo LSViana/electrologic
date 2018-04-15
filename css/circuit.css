@@ -63,7 +63,7 @@
 
 .circuit-element-field:hover {
     cursor: pointer;
-    background-color: rgb(141, 141, 141);
+    background-color: rgba(141, 141, 141, .2);
 }
 
 .circuit-element-field img {
