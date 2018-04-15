@@ -224,6 +224,7 @@ function isCorrectDescriptor(descriptor) {
  * @param {CircuitElementDescriptor} descriptor
  */
 function buildElement(element, descriptor) {
+    makeMobileDraggable(element);
     // Creating <img> element
     let img = document.createElement("img");
     img.setAttribute("src", descriptor.gatePath);
@@ -262,6 +263,43 @@ function buildElement(element, descriptor) {
     }
     //
     elements[element.id] = descriptor;
+}
+
+/**
+ * Makes an HTML Element draggable at mobile platforms
+ * @param {HTMLElement} element 
+ */
+function makeMobileDraggable(element) {
+    element.setAttribute("draggable", true);
+    let dragSource;
+    element.addEventListener("touchstart", (ev) => {
+        if(element.getAttribute("draggable")) {
+            dragSource = element;
+            return false;
+        }
+    }, { passive: true });
+    let lastTouchX = -1, lastTouchY = -1;
+    element.addEventListener("touchmove", (ev) => {
+        if(element == dragSource) {
+            let touch = ev.touches[0];
+            if(lastTouchX == -1 || lastTouchY == -1) {
+                // Nothing before initializing
+            }
+            else {
+                element.style.left = `${pxToNumber(element.style.left) + (touch.clientX - lastTouchX)}px`;
+                element.style.top = `${pxToNumber(element.style.top) + (touch.clientY - lastTouchY)}px`;
+            }
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+            ev.preventDefault();
+        }
+    });
+    element.addEventListener("touchend", (ev) => {
+        if(element == dragSource) {
+            dragSource = null;
+            return false;
+        }
+    });
 }
 
 /**
