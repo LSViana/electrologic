@@ -59,8 +59,9 @@ class CircuitConnection {
      * @param {String} destinyId 
      * @param {Number} destinyConnectorId 
      * @param {Number} destinyIndex 
+     * @param {Number} alignment
      */
-    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex) {
+    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex, alignment = .5) {
         this.connectionId = connectionId;
         this.originId = originId;
         this.originConnectorId = originConnectorId;
@@ -68,6 +69,7 @@ class CircuitConnection {
         this.destinyId = destinyId;
         this.destinyConnectorId = destinyConnectorId;
         this.destinyIndex = destinyIndex;
+        this.alignment = alignment;
     }
 }
 
@@ -108,18 +110,18 @@ var lastDragButtons = 0,
 // Available Circuit Elements
 const circuitDescriptors = [
     new CircuitElementDescriptor("and", "./svg/and-gate.svg", "AND Gate", [{
-            x: "10%",
-            y: "33%",
+            x: "14%",
+            y: "41%",
             input: true
         },
         {
-            x: "10%",
-            y: "52%",
+            x: "14%",
+            y: "60%",
             input: true
         },
         {
-            x: "82%",
-            y: "42%",
+            x: "86%",
+            y: "50%",
             output: true
         }
     ])
@@ -145,6 +147,9 @@ window.addEventListener("load", initializeWindow);
 function initializeWindow() {
     // Getting Main Field to configure element insertion
     mainField = document.querySelector("#main-field");
+    mainField.onfocus = () => {
+        console.log("oi")
+    };
     connectionOptions = document.querySelector("#connection-options");
     mainField.addEventListener("click", handleClickMainField);
     // Initializing Circuit Elements
@@ -180,8 +185,10 @@ function getDescriptor(dataCode) {
  * @param {MouseEvent} event 
  */
 function handleClickMainField(event) {
-    // Removing any select connection
+    // Removing any connection selection
     selectConnection(null);
+    // Removing any connector selection
+    selectConnector(null);
     // Verifying element insertion
     if (currentInsertingElement.element) {
         let div = document.createElement("div");
@@ -241,6 +248,10 @@ function buildElement(element, descriptor) {
     img.setAttribute("alt", descriptor.description);
     // Adding <img> element to the div.circuit-element
     element.appendChild(img);
+    /**
+     * @type {DOMRect}
+     */
+    let connectorRectangle;
     // Creating <div> connectors
     for (let connectorIndex in descriptor.connectors) {
         let connector = descriptor.connectors[connectorIndex];
@@ -248,12 +259,13 @@ function buildElement(element, descriptor) {
         div.id = getId(connectorClass);
         div.style.position = "absolute";
         div.classList.add(connectorClass);
-        div.style.left = `calc(${connector.x} - ${div.clientWidth / 2}px)`;
-        div.style.top = `calc(${connector.y} - ${div.clientHeight / 2}px)`;
-        div.style.top = connector.y;
+        element.appendChild(div);
+        if (!connectorRectangle)
+            connectorRectangle = div.getBoundingClientRect();
+        div.style.left = `calc(${connector.x} - ${connectorRectangle.width / 2}px)`;
+        div.style.top = `calc(${connector.y} - ${connectorRectangle.height / 2}px)`;
         div.setAttribute(connectorIndexAttribute, connectorIndex);
         div.addEventListener("click", handleConnectorClick);
-        element.appendChild(div);
     }
     // Adding custom changes
     if (!element.getAttribute(elementDemonstrationClass)) {
@@ -396,26 +408,36 @@ function handleConnectorClick(event) {
      * @type {HTMLDivElement}
      */
     let current = this;
-    if (current.parentElement.getAttribute(elementDemonstrationClass))
-        return;
-    if (!currentConnection.connectionId)
-        currentConnection.connectionId = getId(connectionClass);
-    if (currentConnection.originId) {
-        // Connection already exists
-        if (currentConnection.originId == current.parentElement.id) {} else {
-            currentConnection.destinyId = current.parentElement.id;
-            currentConnection.destinyConnectorId = current.id;
-            currentConnection.destinyIndex = Number(current.getAttribute(connectorIndexAttribute));
-            // Connection done
-            connections.push(currentConnection);
-            buildConnection(currentConnection);
-            // Reset the connect operation and focus mainField to remove any :hover at mobile platforms
-            currentConnection = new CircuitConnection();
+    selectConnector(current);
+}
+
+function selectConnector(connector) {
+    if (connector) {
+        if (connector.parentElement.getAttribute(elementDemonstrationClass))
+            return;
+        if (!currentConnection.connectionId)
+            currentConnection.connectionId = getId(connectionClass);
+        if (currentConnection.originId) {
+            // Connection already exists
+            if (currentConnection.originId == connector.parentElement.id) {} else {
+                currentConnection.destinyId = connector.parentElement.id;
+                currentConnection.destinyConnectorId = connector.id;
+                currentConnection.destinyIndex = Number(connector.getAttribute(connectorIndexAttribute));
+                // Connection done
+                connections.push(currentConnection);
+                buildConnection(currentConnection);
+                // Reset the connect operation and focus mainField to remove any :hover at mobile platforms
+                selectConnector(null);
+            }
+        } else {
+            currentConnection.originId = connector.parentElement.id;
+            currentConnection.originConnectorId = connector.id;
+            currentConnection.originIndex = Number(connector.getAttribute(connectorIndexAttribute));
         }
     } else {
-        currentConnection.originId = current.parentElement.id;
-        currentConnection.originConnectorId = current.id;
-        currentConnection.originIndex = Number(current.getAttribute(connectorIndexAttribute));
+        // Reset any existing active connectors
+        currentConnection = new CircuitConnection();
+        mainField.focus();
     }
 }
 
@@ -486,6 +508,7 @@ function selectConnection(connectionId) {
  * @param {CircuitConnection} connection 
  */
 function updateConnection(connection) {
+    let alignment = connection.alignment;
     let originConnector = document.getElementById(connection.originConnectorId);
     let destinyConnector = document.getElementById(connection.destinyConnectorId);
     let originBounds = originConnector.getBoundingClientRect();
@@ -505,11 +528,11 @@ function updateConnection(connection) {
     })[0];
     div1.style.position = "absolute";
     let div1Height = connectionWidth;
-    let div1Width = Math.abs(originBounds.x - destinyBounds.x) / 2 + connectionWidth;
+    let div1Width = Math.abs(originBounds.x - destinyBounds.x) / (1 / alignment) + connectionWidth;
     let div1Left = originBounds.x - mainBounds.x + originBounds.width / 4;
     let div1Top = originBounds.y - mainBounds.y + originBounds.height / 4;
     if (invertHorizontally = (originBounds.x > destinyBounds.x)) {
-        div1Height = Math.abs(originBounds.y - destinyBounds.y) / 2;
+        div1Height = Math.abs(originBounds.y - destinyBounds.y) / (1 / alignment) + connectionWidth;
         div1Width = connectionWidth;
     }
     if (invertVertically = (originBounds.y > destinyBounds.y)) {
@@ -557,22 +580,24 @@ function updateConnection(connection) {
     let div3Left = div2Left;
     let div3Top = div2Top;
     let div3Height = div1Height;
+    let div3Width = Math.abs(originBounds.x - destinyBounds.x) - div1Width + 2 * connectionWidth;
     if (!invertVertically) {
         div3Top += div2.clientHeight - connectionWidth;
     }
     if (invertHorizontally) {
         div3Left -= div1Width - originBounds.width / 2;
-        div3Height += 2 * connectionWidth;
+        div3Height = Math.abs(originBounds.y - destinyBounds.y) - div1Height + 2 * connectionWidth;
+        div3Width = div1Width;
     }
     if (invertVertically) {
         if (invertHorizontally) {
-            div3Top -= div1Height + connectionWidth;
-            div3Height = div1Height + 2 * connectionWidth;
+            div3Height = Math.abs(originBounds.y - destinyBounds.y) - div1Height + 2 * connectionWidth;
+            div3Top -= (div3Height - connectionWidth);
         } else {
             div3Height = div1Height;
         }
     }
-    div3.style.width = div1.style.width;
+    div3.style.width = `${div3Width}px`;
     div3.style.height = `${div3Height}px`;
     div3.style.left = `${div3Left}px`;
     div3.style.top = `${div3Top}px`;

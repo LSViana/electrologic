@@ -29,7 +29,6 @@
     background: white;
     display: flex;
     flex-flow: row;
-    z-index: 1;
     padding: var(--medium-margin);
     box-shadow: var(--grid-box-shadow);
     transform: translateX(calc(var(--left-menu-width) * -.85 + 5 * var(--medium-margin)));

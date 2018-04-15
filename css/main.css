@@ -24,6 +24,7 @@ a {
 main {
     background: whitesmoke;
     overflow: hidden;
+    position: absolute;
     /* transform: translateZ(0px);
     -webkit-transform: translateZ(0px);
     -moz-transform: translateZ(0px);
