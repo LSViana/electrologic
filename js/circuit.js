@@ -271,8 +271,9 @@ function handleClickMainField(event) {
         div.setAttribute("data-code", currentInsertingElement.circuitDescriptor.gateCode);
         div.style.position = "absolute";
         mainField.appendChild(div);
-        div.style.left = `${event.layerX - div.clientWidth / 2}px`;
-        div.style.top = `${event.layerY - div.clientHeight / 2}px`;
+        div.style.left = `${event.offsetX - div.clientWidth / 2}px`;
+        div.style.top = `${event.offsetY - div.clientHeight / 2}px`;
+        console.log(event);
         buildElement(div, currentInsertingElement.circuitDescriptor);
         currentInsertingElement.circuitDescriptor = currentInsertingElement.element = null;
     }

@@ -123,7 +123,7 @@ window.addEventListener("load", (ev) => {
     parentElement.style.height = `${1.125 * element.clientHeight}px`;
     element.style.margin = `${.0625 * element.clientHeight}px ${.0625 * element.clientWidth}px`;
     // UNCOMMENT THIS LINE TO CREATE THE GRID
-    makeGrid(backGrid, gridCellSize, gridCellSize);
+    // makeGrid(backGrid, gridCellSize, gridCellSize);
     // backGrid.transform.setPosX(initialGridOffset);
     // backGrid.transform.setPosY(initialGridOffset);
 });

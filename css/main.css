@@ -35,14 +35,12 @@ main {
 #main-field {
     left: 0px;
     top: 0px;
-    background: gainsboro;
     box-shadow: var(--grid-box-shadow);
+    background: url("./../svg/back-grid.svg");
+    background-size: 350px;
+    background-color: gainsboro;
 }
 
 #main-field>* {
     position: absolute;
-}
-
-.back-grid {
-    border: 1px solid lightgray;
 }
