@@ -1,8 +1,8 @@
 // Types and Classes Definitions
 const connectorClass = "connector";
 const connectionClass = "connection";
-const activeConnectionOptions = "connection-options-active";
-const activeConnectionClass = "connection-active";
+const currentConnectionOptions = "connection-options-active";
+const currentConnectionClass = "connection-active";
 const mainFieldInsertingClass = "main-field-inserting";
 const activeElementClass = "element-active";
 const connectorIndexAttribute = "data-connector-index";
@@ -151,6 +151,7 @@ function initializeWindow() {
         console.log("oi")
     };
     connectionOptions = document.querySelector("#connection-options");
+    initializeConnectionOptions(connectionOptions);
     mainField.addEventListener("click", handleClickMainField);
     // Initializing Circuit Elements
     let circuitElements = Array.from(document.querySelectorAll(".circuit-element"));
@@ -168,6 +169,31 @@ function initializeWindow() {
     // Initializing Circuit Element factory
     circuitElements.forEach((value) => {
         buildElementFactory(value);
+    });
+}
+
+/**
+ * Initializes events at Connection Options
+ * @param {HTMLElement} connectionOptions 
+ */
+function initializeConnectionOptions(connectionOptions) {
+    let removeLeftButton = document.querySelector("#remove-left");
+    removeLeftButton.addEventListener("click", (ev) => {
+        if (currentConnection) {
+            let _connectionIndex = -1;
+            let _currentConnection = connections.filter((value, index) => {
+                let result = value.connectionId == currentConnection;
+                if (result)
+                    _connectionIndex = index;
+                return result;
+            })[0];
+            connections.splice(_connectionIndex, 1);
+            let divs = Array.from(document.querySelectorAll(`.${currentConnection.connectionId}`));
+            for (let div of divs) {
+                div.remove();
+            }
+            selectConnection(null);
+        }
     });
 }
 
@@ -419,7 +445,11 @@ function selectConnector(connector) {
             currentConnection.connectionId = getId(connectionClass);
         if (currentConnection.originId) {
             // Connection already exists
-            if (currentConnection.originId == connector.parentElement.id) {} else {
+            if (currentConnection.destinyId) {
+                selectConnection(null);
+                selectConnector(connector);
+            }
+            if (currentConnection.originId != connector.parentElement.id) {
                 currentConnection.destinyId = connector.parentElement.id;
                 currentConnection.destinyConnectorId = connector.id;
                 currentConnection.destinyIndex = Number(connector.getAttribute(connectorIndexAttribute));
@@ -461,7 +491,6 @@ function buildConnection(connection) {
     updateConnection(connection);
 }
 
-let activeConnection;
 /**
  * Handle click events at connections
  * @param {MouseEvent} ev 
@@ -484,23 +513,27 @@ function handleConnectionClick(ev) {
 function selectConnection(connectionId) {
     if (connectionId) {
         let divs = Array.from(document.querySelectorAll(`.${connectionId}`));
-        if (activeConnection == connectionId) {
-
+        if (currentConnection.connectionId == connectionId) {
+            // Nothing here...
         } else {
             selectConnection(null);
             for (let div of divs) {
-                div.classList.add(activeConnectionClass);
+                div.classList.add(currentConnectionClass);
             }
+            currentConnection = connections.filter((value) => {
+                return value.connectionId == connectionId
+            })[0];
         }
-        connectionOptions.classList.add(activeConnectionOptions);
+        connectionOptions.classList.add(currentConnectionOptions);
     } else {
-        let divs = Array.from(document.querySelectorAll(`.${activeConnectionClass}`));
+        let divs = Array.from(document.querySelectorAll(`.${currentConnectionClass}`));
         for (let div of divs) {
-            div.classList.remove(activeConnectionClass);
+            div.classList.remove(currentConnectionClass);
         }
-        connectionOptions.classList.remove(activeConnectionOptions);
+        connectionOptions.classList.remove(currentConnectionOptions);
+        currentConnection = new CircuitConnection();
     }
-    activeConnection = connectionId;
+    currentConnection.connectionId = connectionId;
 }
 
 /**
