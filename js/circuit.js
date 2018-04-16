@@ -3,6 +3,7 @@ const connectorClass = "connector";
 const connectionClass = "connection";
 const activeClass = "active";
 const currentConnectionClass = "connection-active";
+const dataCodeAttribute = "data-code";
 const mainFieldInsertingClass = "main-field-inserting";
 const activeElementClass = "element-active";
 const connectorIndexAttribute = "data-connector-index";
@@ -114,20 +115,20 @@ var lastDragButtons = 0,
 // Available Circuit Elements
 const circuitDescriptors = [
     new CircuitElementDescriptor("and", "./svg/and-gate.svg", "AND Gate", [{
-            x: "14%",
-            y: "41%",
-            input: true
-        },
-        {
-            x: "14%",
-            y: "60%",
-            input: true
-        },
-        {
-            x: "86%",
-            y: "50%",
-            output: true
-        }
+        x: "14%",
+        y: "41%",
+        input: true
+    },
+    {
+        x: "14%",
+        y: "60%",
+        input: true
+    },
+    {
+        x: "86%",
+        y: "50%",
+        input: false
+    }
     ])
 ];
 
@@ -166,7 +167,7 @@ function initializeWindow() {
         /**
          * @type {String}
          */
-        let dataCode = value.getAttribute("data-code");
+        let dataCode = value.getAttribute(dataCodeAttribute);
         let elementDescriptor = getDescriptor(dataCode);
         value.id = getId(dataCode);
         value.setAttribute(elementDemonstrationClass, true);
@@ -216,7 +217,7 @@ function removeElement(element) {
         return (value.originId != element.id && value.destinyId != element.id);
     });
     // Removing each associated connection
-    for(let connection of connectionsAssociated) {
+    for (let connection of connectionsAssociated) {
         removeConnection(connection);
     }
     // Removing the current connection element from DOM
@@ -273,7 +274,6 @@ function handleClickMainField(event) {
         mainField.appendChild(div);
         div.style.left = `${event.offsetX - div.clientWidth / 2}px`;
         div.style.top = `${event.offsetY - div.clientHeight / 2}px`;
-        console.log(event);
         buildElement(div, currentInsertingElement.circuitDescriptor);
         currentInsertingElement.circuitDescriptor = currentInsertingElement.element = null;
     }
@@ -370,8 +370,8 @@ function makeMobileDraggable(element) {
             return false;
         }
     }, {
-        passive: true
-    });
+            passive: true
+        });
     let lastTouchX = -1,
         lastTouchY = -1;
     element.addEventListener("touchmove", (ev) => {
@@ -520,7 +520,15 @@ function selectConnector(connector) {
                 selectConnection(null);
                 selectConnector(connector);
             }
+            let parentDataCode = connector.parentElement.getAttribute(dataCodeAttribute);
+            let descriptor = circuitDescriptors.filter((value) => { return parentDataCode == value.gateCode; })[0];
             if (currentConnection.originId != connector.parentElement.id) {
+                // If the destination connector isn't an input connector, the operation is aborted
+                if (!descriptor.connectors[connector.getAttribute(connectorIndexAttribute)].input) {
+                    // TODO
+                    selectConnector(null);
+                    return;
+                }
                 currentConnection.destinyId = connector.parentElement.id;
                 currentConnection.destinyConnectorId = connector.id;
                 currentConnection.destinyIndex = Number(connector.getAttribute(connectorIndexAttribute));
