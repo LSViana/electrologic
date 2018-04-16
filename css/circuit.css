@@ -11,6 +11,7 @@
     --connector-size: 20px;
     --field-connector-color: #F88;
     --field-connector-color-active: #FFF;
+    --field-element-color-active: rgba(141, 141, 141, .2);
     --field-connection-color-active: deepskyblue;
     --field-connection: dimgray;
     --small-interval: .3s;
@@ -65,7 +66,7 @@
 
 .circuit-element-field:hover {
     cursor: pointer;
-    background-color: rgba(141, 141, 141, .2);
+    background-color: var(--field-element-color-active);
 }
 
 .circuit-element-field img {
@@ -98,4 +99,8 @@
     height: var(--connector-size);
     border-radius: 100%;
     border: var(--connector-border-color) var(--connector-border-weight) solid;
+}
+
+.element-active {
+    background-color: var(--field-element-color-active) !important;
 }

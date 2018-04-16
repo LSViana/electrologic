@@ -1,7 +1,7 @@
 // Types and Classes Definitions
 const connectorClass = "connector";
 const connectionClass = "connection";
-const currentConnectionOptions = "connection-options-active";
+const activeClass = "active";
 const currentConnectionClass = "connection-active";
 const mainFieldInsertingClass = "main-field-inserting";
 const activeElementClass = "element-active";
@@ -102,6 +102,10 @@ var mainField = {};
  * @type {HTMLElement}
  */
 var connectionOptions = {};
+/**
+ * @type {HTMLElement}
+ */
+var elementOptions = {};
 //
 var lastDragButtons = 0,
     lastPosX = 0,
@@ -152,6 +156,8 @@ function initializeWindow() {
     };
     connectionOptions = document.querySelector("#connection-options");
     initializeConnectionOptions(connectionOptions);
+    elementOptions = document.querySelector("#element-options");
+    initializeElementOptions(elementOptions);
     mainField.addEventListener("click", handleClickMainField);
     // Initializing Circuit Elements
     let circuitElements = Array.from(document.querySelectorAll(".circuit-element"));
@@ -173,28 +179,68 @@ function initializeWindow() {
 }
 
 /**
- * Initializes events at Connection Options
+ * Initializes settings at Connection Options
  * @param {HTMLElement} connectionOptions 
  */
 function initializeConnectionOptions(connectionOptions) {
-    let removeLeftButton = document.querySelector("#remove-left");
+    let removeLeftButton = document.querySelector("#remove-connection-left");
     removeLeftButton.addEventListener("click", (ev) => {
         if (currentConnection) {
-            let _connectionIndex = -1;
-            let _currentConnection = connections.filter((value, index) => {
-                let result = value.connectionId == currentConnection;
-                if (result)
-                    _connectionIndex = index;
-                return result;
-            })[0];
-            connections.splice(_connectionIndex, 1);
-            let divs = Array.from(document.querySelectorAll(`.${currentConnection.connectionId}`));
-            for (let div of divs) {
-                div.remove();
-            }
-            selectConnection(null);
+            removeConnection(currentConnection);
         }
     });
+}
+
+/**
+ * Initializes settings at Element Options
+ * @param {HTMLElement} elementOptions 
+ */
+function initializeElementOptions(elementOptions) {
+    let removeLeftButton = document.querySelector("#remove-element-left");
+    removeLeftButton.addEventListener("click", (ev) => {
+        if (currentFieldElement)
+            removeElement(currentFieldElement);
+    });
+}
+
+/**
+ * Remove the element and the connections associated at memory and DOM
+ * @param {HTMLElement} element 
+ */
+function removeElement(element) {
+    let connectionsAssociated = connections.filter((value) => {
+        return (value.originId == element.id || value.destinyId == element.id);
+    });
+    // Removing the connections associated from the @connections variable
+    connections = connections.filter((value) => {
+        return (value.originId != element.id && value.destinyId != element.id);
+    });
+    // Removing each associated connection
+    for(let connection of connectionsAssociated) {
+        removeConnection(connection);
+    }
+    // Removing the current connection element from DOM
+    element.remove();
+}
+
+/**
+ * Remove a connection from @connections and from DOM
+ * @param {CircuitConnection} connection 
+ */
+function removeConnection(connection) {
+    let _connectionIndex = -1;
+    let _currentConnection = connections.filter((value, index) => {
+        let result = value.connectionId == connection.connectionId;
+        if (result)
+            _connectionIndex = index;
+        return result;
+    })[0];
+    connections.splice(_connectionIndex, 1);
+    let divs = Array.from(document.querySelectorAll(`.${connection.connectionId}`));
+    for (let div of divs) {
+        div.remove();
+    }
+    selectConnection(null);
 }
 
 /**
@@ -215,6 +261,8 @@ function handleClickMainField(event) {
     selectConnection(null);
     // Removing any connector selection
     selectConnector(null);
+    // Removing any element selection
+    selectElement(null);
     // Verifying element insertion
     if (currentInsertingElement.element) {
         let div = document.createElement("div");
@@ -315,6 +363,7 @@ function makeMobileDraggable(element) {
     element.setAttribute("draggable", true);
     let dragSource;
     element.addEventListener("touchstart", (ev) => {
+        selectElement(element);
         if (element.getAttribute("draggable")) {
             dragSource = element;
             return false;
@@ -355,6 +404,7 @@ function makeDesktopDraggable(element) {
         lastTouchY = -1;
     element.addEventListener("dragstart", (ev) => {
         ev.preventDefault();
+        selectElement(element);
         return false;
     });
     element.addEventListener("mousedown", (ev) => {
@@ -415,13 +465,33 @@ function handleChanges(mutationList) {
 function handleElementClick(event) {
     event.stopPropagation();
     if (currentFieldElement != this) {
+        selectElement(this);
+        lastPosX = event.screenX;
+        lastPosY = event.screenY;
+    }
+}
+
+/**
+ * Select an HTML element as the current at DOM and variable @currentFieldElement
+ * @param {HTMLElement} element
+ */
+function selectElement(element) {
+    if (element) {
+        if (element != currentFieldElement && currentFieldElement)
+            currentFieldElement.classList.remove(activeElementClass);
+        currentFieldElement = element;
+        currentFieldElement.classList.add(activeElementClass);
+    } else {
         if (currentFieldElement) {
             currentFieldElement.classList.remove(activeElementClass);
         }
-        lastPosX = event.screenX;
-        lastPosY = event.screenY;
-        currentFieldElement = this;
-        currentFieldElement.classList.add(activeElementClass);
+        currentFieldElement = null;
+    }
+    //
+    if (currentFieldElement) {
+        elementOptions.classList.add(activeClass);
+    } else {
+        elementOptions.classList.remove(activeClass);
     }
 }
 
@@ -524,13 +594,13 @@ function selectConnection(connectionId) {
                 return value.connectionId == connectionId
             })[0];
         }
-        connectionOptions.classList.add(currentConnectionOptions);
+        connectionOptions.classList.add(activeClass);
     } else {
         let divs = Array.from(document.querySelectorAll(`.${currentConnectionClass}`));
         for (let div of divs) {
             div.classList.remove(currentConnectionClass);
         }
-        connectionOptions.classList.remove(currentConnectionOptions);
+        connectionOptions.classList.remove(activeClass);
         currentConnection = new CircuitConnection();
     }
     currentConnection.connectionId = connectionId;

@@ -18,7 +18,15 @@
     display: none;
 }
 
-#connection-options.connection-options-active {
+#connection-options.active {
+    display: unset !important;
+}
+
+#element-options {
+    display: none;
+}
+
+#element-options.active {
     display: unset !important;
 }
 
