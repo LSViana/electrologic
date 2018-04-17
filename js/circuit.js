@@ -3,10 +3,11 @@ const connectorClass = "connector";
 const simpleButtonClass = "simple-button";
 const connectionClass = "connection";
 const activeClass = "active";
-const currentConnectionClass = "connection-active";
+const activeConnectionClass = "connection-active";
 const dataCodeAttribute = "data-code";
 const mainFieldInsertingClass = "main-field-inserting";
 const activeElementClass = "element-active";
+const connectionElectrifiedAttribute = "connection-electrified";
 const connectorIndexAttribute = "data-connector-index";
 const connectionIndexAttribute = "data-connection-index";
 const elementDemonstrationClass = "demo";
@@ -43,12 +44,24 @@ class CircuitElementDescriptor {
      * @param {String} gatePath 
      * @param {String} description 
      * @param {Array} additionals 
+     * @param {Function} updateOutput
      */
-    constructor(gateCode, gatePath, description, additionals) {
+    constructor(gateCode, gatePath, description, additionals, updateOutput) {
         this.gateCode = gateCode;
         this.gatePath = gatePath;
         this.description = description;
         this.additionals = additionals;
+        this.updateOutput = updateOutput;
+    }
+
+    /**
+     * @param {HTMLElement} element
+     * @returns {Array<HTMLDivElement>}
+     */
+    getOutputConnectors(element) {
+        return Array.from(element.children).filter((value) => {
+            return value.classList.contains(connectorClass);
+        });
     }
 }
 class CircuitConnection {
@@ -60,10 +73,10 @@ class CircuitConnection {
      * @param {Number} originIndex 
      * @param {String} destinyId 
      * @param {Number} destinyConnectorId 
-     * @param {Number} destinyIndex 
+     * @param {Number} destinyIndex
      * @param {Number} alignment
      */
-    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex, alignment = .5) {
+    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex, inputConnectorId, alignment = .5) {
         this.connectionId = connectionId;
         this.originId = originId;
         this.originConnectorId = originConnectorId;
@@ -71,6 +84,7 @@ class CircuitConnection {
         this.destinyId = destinyId;
         this.destinyConnectorId = destinyConnectorId;
         this.destinyIndex = destinyIndex;
+        this.inputConnectorId = inputConnectorId;
         this.alignment = alignment;
     }
 }
@@ -130,7 +144,9 @@ const circuitDescriptors = [
             y: "50%",
             input: false
         }
-    ]),
+    ], function (element) {
+        throw "Method not implemented";
+    }),
     new CircuitElementDescriptor("simple-switch", "./svg/simple-switch.svg", "Simple Switch", [{
             simpleButton: true,
             x: "37%",
@@ -141,10 +157,22 @@ const circuitDescriptors = [
             y: "50%",
             input: false
         }
-    ])
+    ], function (element) {
+        let active = element.getAttribute(activeClass) == "true";
+        let outputConnectors = this.getOutputConnectors(element);
+        for (let outputConnector of outputConnectors) {
+            let _connections = connections.filter((value) => {
+                return value.originConnectorId == outputConnector.id;
+            });
+            for (let _connection of _connections) {
+                setConnectionState(_connection, active);
+            }
+        }
+    })
 ];
 
 var elementIds = {};
+
 /**
  * Function to load element IDs to be used as identity
  */
@@ -258,12 +286,23 @@ function removeConnection(connection) {
 }
 
 /**
- * Get the CircuitElementDescriptor corresponding to this data-code String attribute
+ * Get the CircuitElementDescriptor corresponding to this data-code String
  * @param {String} dataCode 
  * @returns {CircuitElementDescriptor}
  */
 function getDescriptor(dataCode) {
     return circuitDescriptors.filter(isCorrectDescriptor, dataCode)[0];
+}
+
+/**
+ * Get the CircuitConnection corresponding to this connectionId String
+ * @param {String} connectionId 
+ * @returns {CircuitConnection}
+ */
+function getConnection(connectionId) {
+    return connections.filter((value) => {
+        value.connectionId == connectionId
+    })[0];
 }
 
 /**
@@ -398,6 +437,8 @@ function handleSimpleSwitchButtonClick(event) {
     let state = _state == "true";
     this.parentElement.setAttribute(activeClass, !state);
     // Switching Output
+    let descriptor = getDescriptor(this.parentElement.getAttribute(dataCodeAttribute));
+    descriptor.updateOutput(this.parentElement);
 }
 
 /**
@@ -572,14 +613,20 @@ function selectConnector(connector) {
                 let futureDestinyIndex = Number(connector.getAttribute(connectorIndexAttribute));
                 let futureDestinyId = connector.parentElement.id;
                 // The connection is only allowed if the connectors have different Input/Output characteristics
-                let originDescriptor = circuitDescriptors.filter((value) => { return currentConnection.originId.indexOf(value.gateCode) != -1; })[0];
-                let destinyDescriptor = circuitDescriptors.filter((value) => { return futureDestinyId.indexOf(value.gateCode) != -1; })[0];
-                if(originDescriptor.additionals[currentConnection.originIndex].input == destinyDescriptor.additionals[futureDestinyIndex].input)
-                {
+                let originDescriptor = getDescriptor(document.querySelector(`#${currentConnection.originId}`).getAttribute(dataCodeAttribute));
+                let destinyDescriptor = getDescriptor(document.querySelector(`#${futureDestinyId}`).getAttribute(dataCodeAttribute));
+                let isOriginInput = originDescriptor.additionals[currentConnection.originIndex].input;
+                if (isOriginInput == destinyDescriptor.additionals[futureDestinyIndex].input) {
                     // Operation not allowed
                     selectConnection(null);
                     selectConnector(null);
                     return;
+                }
+                // Defining the Input Connector at Connection
+                if (isOriginInput) {
+                    currentConnection.inputConnectorId = currentConnection.originConnectorId;
+                } else {
+                    currentConnection.inputConnectorId = currentConnection.destinyConnectorId;
                 }
                 //
                 currentConnection.destinyId = futureDestinyId;
@@ -614,6 +661,10 @@ function buildConnection(connection) {
     let divs = [div1, div2, div3];
     let divIndex = 0;
     for (let div of divs) {
+        let mo = new MutationObserver(handleConnectionElectricChange);
+        mo.observe(div, {
+            attributeFilter: [connectionElectrifiedAttribute]
+        });
         div.addEventListener("click", handleConnectionClick);
         div.classList.add(connection.connectionId);
         div.setAttribute(connectionIndexAttribute, divIndex++);
@@ -621,6 +672,40 @@ function buildConnection(connection) {
     }
     //#region DIV1
     updateConnection(connection);
+}
+
+/**
+ * Defines to a set connection to ON (electrified) or OFF (non-electrified)
+ * @param {CircuitConnection} _connection 
+ * @param {Boolean} active 
+ */
+function setConnectionState(_connection, active) {
+    let _elements = Array.from(document.querySelectorAll(`.${_connection.connectionId}`));
+    for (let _element of _elements) {
+        if (active)
+            _element.setAttribute(connectionElectrifiedAttribute, true);
+        else
+            _element.setAttribute(connectionElectrifiedAttribute, false);
+    }
+}
+
+/**
+ * Handles all changes made at any connection, enabling or deactivating it
+ * @param {Array} mutations  
+ */
+function handleConnectionElectricChange(mutations) {
+    console.log("mudou");
+    /**
+     * @type {CircuitConnection}
+     */
+    let _connection;
+    for (let mutationIndex in mutations) {
+        /**
+         * @type {MutationRecord}
+         */
+        let mutation = mutations[mutationIndex];
+        
+    }
 }
 
 /**
@@ -650,7 +735,7 @@ function selectConnection(connectionId) {
         } else {
             selectConnection(null);
             for (let div of divs) {
-                div.classList.add(currentConnectionClass);
+                div.classList.add(activeConnectionClass);
             }
             currentConnection = connections.filter((value) => {
                 return value.connectionId == connectionId
@@ -658,9 +743,9 @@ function selectConnection(connectionId) {
         }
         connectionOptions.classList.add(activeClass);
     } else {
-        let divs = Array.from(document.querySelectorAll(`.${currentConnectionClass}`));
+        let divs = Array.from(document.querySelectorAll(`.${activeConnectionClass}`));
         for (let div of divs) {
-            div.classList.remove(currentConnectionClass);
+            div.classList.remove(activeConnectionClass);
         }
         connectionOptions.classList.remove(activeClass);
         currentConnection = new CircuitConnection();

@@ -13,7 +13,8 @@
     --field-connector-color: #F88;
     --field-connector-color-active: #FFF;
     --field-element-color-active: rgba(141, 141, 141, .2);
-    --field-connection-color-active: deepskyblue;
+    --field-connection-color-active: lightskyblue;
+    --field-connection-color-electrified: deepskyblue;
     --field-connection: dimgray;
     --small-interval: .3s;
     --tiny-interval: .2s;
@@ -93,6 +94,10 @@
     border-radius: 1000px;
     background-color: var(--field-connection);
     transition: background-color var(--tiny-interval) ease-in;
+}
+
+.connection[connection-electrified="true"] {
+    background-color: var(--field-connection-color-electrified) !important;
 }
 
 .connection-active {
