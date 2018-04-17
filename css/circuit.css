@@ -9,6 +9,7 @@
     --connector-border-color: #F88;
     --connector-border-weight: 5px;
     --connector-size: 20px;
+    --simple-button-size: 50px;
     --field-connector-color: #F88;
     --field-connector-color-active: #FFF;
     --field-element-color-active: rgba(141, 141, 141, .2);
@@ -29,6 +30,10 @@
     background-color: lightgray;
     filter: saturate(0);
     transition: background-color var(--small-interval) ease-in;
+}
+
+.circuit-element:not(:first-child) {
+    margin-top: var(--big-margin);
 }
 
 .circuit-element:hover {
@@ -103,4 +108,19 @@
 
 .element-active {
     background-color: var(--field-element-color-active) !important;
+}
+
+.simple-button {
+    width: var(--simple-button-size);
+    height: var(--simple-button-size);
+    border-radius: var(--medium-margin);
+    border: var(--connector-border-color) var(--connector-border-weight) solid;
+}
+
+.simple-switch div {
+    transition: filter var(--small-interval) ease-in, transform var(--small-interval) ease-in;
+}
+
+.simple-switch[active="true"] div.simple-button {
+    transform: translateX(85%);
 }

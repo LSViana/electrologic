@@ -1,5 +1,6 @@
 // Types and Classes Definitions
 const connectorClass = "connector";
+const simpleButtonClass = "simple-button";
 const connectionClass = "connection";
 const activeClass = "active";
 const currentConnectionClass = "connection-active";
@@ -41,13 +42,13 @@ class CircuitElementDescriptor {
      * @param {String} gateCode 
      * @param {String} gatePath 
      * @param {String} description 
-     * @param {Array} connectors 
+     * @param {Array} additionals 
      */
-    constructor(gateCode, gatePath, description, connectors) {
+    constructor(gateCode, gatePath, description, additionals) {
         this.gateCode = gateCode;
         this.gatePath = gatePath;
         this.description = description;
-        this.connectors = connectors;
+        this.additionals = additionals;
     }
 }
 class CircuitConnection {
@@ -115,20 +116,31 @@ var lastDragButtons = 0,
 // Available Circuit Elements
 const circuitDescriptors = [
     new CircuitElementDescriptor("and", "./svg/and-gate.svg", "AND Gate", [{
-        x: "14%",
-        y: "41%",
-        input: true
-    },
-    {
-        x: "14%",
-        y: "60%",
-        input: true
-    },
-    {
-        x: "86%",
-        y: "50%",
-        input: false
-    }
+            x: "14%",
+            y: "41%",
+            input: true
+        },
+        {
+            x: "14%",
+            y: "60%",
+            input: true
+        },
+        {
+            x: "86%",
+            y: "50%",
+            input: false
+        }
+    ]),
+    new CircuitElementDescriptor("simple-switch", "./svg/simple-switch.svg", "Simple Switch", [{
+            simpleButton: true,
+            x: "37%",
+            y: "50%",
+        },
+        {
+            x: "81%",
+            y: "50%",
+            input: false
+        }
     ])
 ];
 
@@ -144,6 +156,7 @@ function loadElementIds() {
     // Adding custom ID counters
     elementIds[connectorClass] = 1;
     elementIds[connectionClass] = 1;
+    elementIds[simpleButtonClass] = 1;
 };
 loadElementIds();
 
@@ -317,6 +330,7 @@ function isCorrectDescriptor(descriptor) {
  * @param {CircuitElementDescriptor} descriptor
  */
 function buildElement(element, descriptor) {
+    element.classList.add(descriptor.gateCode);
     // Creating <img> element
     let img = document.createElement("img");
     img.setAttribute("src", descriptor.gatePath);
@@ -326,21 +340,39 @@ function buildElement(element, descriptor) {
     /**
      * @type {DOMRect}
      */
-    let connectorRectangle;
+    let additionalRectangle;
     // Creating <div> connectors
-    for (let connectorIndex in descriptor.connectors) {
-        let connector = descriptor.connectors[connectorIndex];
-        let div = document.createElement("div");
-        div.id = getId(connectorClass);
-        div.style.position = "absolute";
-        div.classList.add(connectorClass);
-        element.appendChild(div);
-        if (!connectorRectangle)
-            connectorRectangle = div.getBoundingClientRect();
-        div.style.left = `calc(${connector.x} - ${connectorRectangle.width / 2}px)`;
-        div.style.top = `calc(${connector.y} - ${connectorRectangle.height / 2}px)`;
-        div.setAttribute(connectorIndexAttribute, connectorIndex);
-        div.addEventListener("click", handleConnectorClick);
+    for (let additionalIndex in descriptor.additionals) {
+        let additional = descriptor.additionals[additionalIndex];
+        // Button
+        if (additional.simpleButton) {
+            let div = document.createElement("div");
+            div.id = getId(simpleButtonClass);
+            div.style.position = "absolute";
+            div.classList.add(simpleButtonClass);
+            element.appendChild(div);
+            additionalRectangle = div.getBoundingClientRect();
+            div.style.left = `calc(${additional.x} - ${additionalRectangle.width / 2}px)`;
+            div.style.top = `calc(${additional.y} - ${additionalRectangle.height / 2}px)`;
+            if (!element.getAttribute(elementDemonstrationClass))
+                div.addEventListener("click", handleSimpleSwitchButtonClick);
+            // Adding button off attribute
+            element.setAttribute(activeClass, false);
+        }
+        // Standard Connectors
+        else {
+            let div = document.createElement("div");
+            div.id = getId(connectorClass);
+            div.style.position = "absolute";
+            div.classList.add(connectorClass);
+            element.appendChild(div);
+            additionalRectangle = div.getBoundingClientRect();
+            div.style.left = `calc(${additional.x} - ${additionalRectangle.width / 2}px)`;
+            div.style.top = `calc(${additional.y} - ${additionalRectangle.height / 2}px)`;
+            div.setAttribute(connectorIndexAttribute, additionalIndex);
+            if (!element.getAttribute(elementDemonstrationClass))
+                div.addEventListener("click", handleConnectorClick);
+        }
     }
     // Adding custom changes
     if (!element.getAttribute(elementDemonstrationClass)) {
@@ -357,6 +389,18 @@ function buildElement(element, descriptor) {
 }
 
 /**
+ * Handle the click at the simple switch button
+ * @param {MouseEvent} event 
+ */
+function handleSimpleSwitchButtonClick(event) {
+    // Graphical Treatment
+    let _state = this.parentElement.getAttribute(activeClass);
+    let state = _state == "true";
+    this.parentElement.setAttribute(activeClass, !state);
+    // Switching Output
+}
+
+/**
  * Makes an HTML Element draggable at mobile platforms
  * @param {HTMLElement} element 
  */
@@ -370,8 +414,8 @@ function makeMobileDraggable(element) {
             return false;
         }
     }, {
-            passive: true
-        });
+        passive: true
+    });
     let lastTouchX = -1,
         lastTouchY = -1;
     element.addEventListener("touchmove", (ev) => {
@@ -521,17 +565,26 @@ function selectConnector(connector) {
                 selectConnector(connector);
             }
             let parentDataCode = connector.parentElement.getAttribute(dataCodeAttribute);
-            let descriptor = circuitDescriptors.filter((value) => { return parentDataCode == value.gateCode; })[0];
+            let descriptor = circuitDescriptors.filter((value) => {
+                return parentDataCode == value.gateCode;
+            })[0];
             if (currentConnection.originId != connector.parentElement.id) {
-                // If the destination connector isn't an input connector, the operation is aborted
-                if (!descriptor.connectors[connector.getAttribute(connectorIndexAttribute)].input) {
-                    // TODO
+                let futureDestinyIndex = Number(connector.getAttribute(connectorIndexAttribute));
+                let futureDestinyId = connector.parentElement.id;
+                // The connection is only allowed if the connectors have different Input/Output characteristics
+                let originDescriptor = circuitDescriptors.filter((value) => { return currentConnection.originId.indexOf(value.gateCode) != -1; })[0];
+                let destinyDescriptor = circuitDescriptors.filter((value) => { return futureDestinyId.indexOf(value.gateCode) != -1; })[0];
+                if(originDescriptor.additionals[currentConnection.originIndex].input == destinyDescriptor.additionals[futureDestinyIndex].input)
+                {
+                    // Operation not allowed
+                    selectConnection(null);
                     selectConnector(null);
                     return;
                 }
-                currentConnection.destinyId = connector.parentElement.id;
+                //
+                currentConnection.destinyId = futureDestinyId;
                 currentConnection.destinyConnectorId = connector.id;
-                currentConnection.destinyIndex = Number(connector.getAttribute(connectorIndexAttribute));
+                currentConnection.destinyIndex = futureDestinyIndex;
                 // Connection done
                 connections.push(currentConnection);
                 buildConnection(currentConnection);
