@@ -1,15 +1,33 @@
 /**
+ * Class to represent a circuit
+ */
+class Circuit {
+    /**
+     * Standard constructor to Circuit to keep elements and connections saved
+     * @param {String} name
+     * @param {Array<CircuitElement>} elements 
+     * @param {Array<CircuitConnection>} connections 
+     */
+    constructor(name, elements = [], connections = []) {
+        this.name = name;
+        this.elements = elements;
+        this.connections = connections;
+    }
+}
+/**
  * Class to represent circuit element
  */
 class CircuitElement {
     /**
      * Standard constructor to CircuitElement to keep description and element representing it
-     * @param {HTMLElement} element 
-     * @param {CircuitElementDescriptor} circuitDescriptor 
+     * @param {String} id
+     * @param {String} ["data-code"]
+     * @param {String} style 
      */
-    constructor(element, circuitDescriptor) {
-        this.element = element;
-        this.circuitDescriptor = circuitDescriptor;
+    constructor(id, dataCode, style) {
+        this.id = id;
+        this["data-code"] = dataCode;
+        this.style = style;
     }
 }
 /**

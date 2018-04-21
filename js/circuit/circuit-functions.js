@@ -10,8 +10,8 @@ function loadElementIds() {
     elementIds[connectorClass] = 1;
     elementIds[connectionClass] = 1;
     elementIds[simpleButtonClass] = 1;
-    elementIds[lampClass] = 1;
     elementIds[lampLightClass] = 1;
+    elementIds[circuitIdentifier] = 1;
 };
 loadElementIds();
 
@@ -263,7 +263,9 @@ function buildElement(element, descriptor) {
         });
     }
     //
-    elements[element.id] = descriptor;
+    if (element.id) {
+        elements[element.id] = descriptor;
+    }
 }
 
 /**
@@ -325,8 +327,8 @@ function makeMobileDraggable(element) {
  * @param {HTMLElement} element 
  */
 function makeDesktopDraggable(element) {
-    let lastTouchX = -1,
-        lastTouchY = -1;
+    let lastTouchX = 0,
+        lastTouchY = 0;
     element.addEventListener("dragstart", (ev) => {
         ev.preventDefault();
         selectElement(element);
@@ -472,8 +474,7 @@ function selectConnector(connector) {
                     currentConnection.inputConnectorId = currentConnection.destinyConnectorId;
                 }
                 // Connection done
-                connections.push(currentConnection);
-                buildConnection(currentConnection);
+                insertConnection(currentConnection);
                 // Reset the connect operation and focus mainField to remove any :hover at mobile platforms
                 selectConnector(null);
                 selectConnection(null);
@@ -488,6 +489,15 @@ function selectConnector(connector) {
         currentConnection = new CircuitConnection();
         mainField.focus();
     }
+}
+
+/**
+ * Inserts the connection at the connections collection and builds it graphically through buildConnection()
+ * @param {CircuitConnection} connection 
+ */
+function insertConnection(connection) {
+    connections.push(connection);
+    buildConnection(connection);
 }
 
 /**
@@ -772,6 +782,26 @@ function manageLogicGateChanges(descriptor, element, evaluator) {
             setConnectorConnectionsState(outputConnector, result);
         }
     }
+}
+
+/**
+ * @returns {Circuit} The circuit corresponding to the current configuration of elements at screen
+ */
+function getCurrentCircuit() {
+    /**
+     * @type {Array<CircuitElement>}
+     */
+    let _elements = [];
+    // Getting Elements
+    for (let key in elements) {
+        let _element = document.getElementById(key);
+        if (!(_element.getAttribute(elementDemonstrationClass) != null)) {
+            _elements.push(new CircuitElement(_element.id, _element.getAttribute(dataCodeAttribute), _element.getAttribute("style")));
+        }
+    }
+    let result = new Circuit(null, _elements, connections);
+    //
+    return result;
 }
 
 // Utilities
