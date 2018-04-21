@@ -7,10 +7,13 @@ const activeConnectionClass = "connection-active";
 const dataCodeAttribute = "data-code";
 const mainFieldInsertingClass = "main-field-inserting";
 const activeElementClass = "element-active";
+const elementDemonstrationClass = "demo";
+// Attributes
+const connectionIdAttribute = "connection-id";
 const connectionElectrifiedAttribute = "connection-electrified";
 const connectorIndexAttribute = "data-connector-index";
 const connectionIndexAttribute = "data-connection-index";
-const elementDemonstrationClass = "demo";
+// Extras
 const connectionWidth = 12;
 const connectionWidthText = `${connectionWidth}px`;
 // Dummy element used to hide Drag and Drop previews
@@ -60,7 +63,17 @@ class CircuitElementDescriptor {
      */
     getOutputConnectors(element) {
         return Array.from(element.children).filter((value) => {
-            return value.classList.contains(connectorClass);
+            return value.classList.contains(connectorClass) && (this.additionals[value.getAttribute(connectorIndexAttribute)].input === false);
+        });
+    }
+
+    /**
+     * @param {HTMLElement} element
+     * @returns {Array<HTMLDivElement>}
+     */
+    getInputConnectors(element) {
+        return Array.from(element.children).filter((value) => {
+            return value.classList.contains(connectorClass) && (this.additionals[value.getAttribute(connectorIndexAttribute)].input === true);
         });
     }
 }
@@ -73,19 +86,22 @@ class CircuitConnection {
      * @param {Number} originIndex 
      * @param {String} destinyId 
      * @param {Number} destinyConnectorId 
+     * @param {String} inputConnectorId
      * @param {Number} destinyIndex
      * @param {Number} alignment
+     * @param {Boolean} active
      */
-    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, destinyIndex, inputConnectorId, alignment = .5) {
+    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, inputConnectorId, destinyIndex, alignment = .5, active = false) {
         this.connectionId = connectionId;
         this.originId = originId;
         this.originConnectorId = originConnectorId;
         this.originIndex = originIndex;
         this.destinyId = destinyId;
         this.destinyConnectorId = destinyConnectorId;
-        this.destinyIndex = destinyIndex;
         this.inputConnectorId = inputConnectorId;
+        this.destinyIndex = destinyIndex;
         this.alignment = alignment;
+        this.active = active;
     }
 }
 
@@ -145,7 +161,17 @@ const circuitDescriptors = [
             input: false
         }
     ], function (element) {
-        throw "Method not implemented";
+        let inputConnectors = this.getInputConnectors(element);
+        if (inputConnectors.length > 0) {
+            let inputStats = getConnectorsStates(inputConnectors);
+            let outputConnectors = this.getOutputConnectors(element);
+                let result = inputStats.reduce((previous, current) => {
+                    return previous && current;
+                }, inputStats[0]);
+                for(let outputConnector of outputConnectors) {
+                    setConnectorConnectionsState(outputConnector, result);
+                }
+        }
     }),
     new CircuitElementDescriptor("simple-switch", "./svg/simple-switch.svg", "Simple Switch", [{
             simpleButton: true,
@@ -162,11 +188,10 @@ const circuitDescriptors = [
         let outputConnectors = this.getOutputConnectors(element);
         for (let outputConnector of outputConnectors) {
             let _connections = connections.filter((value) => {
-                return value.originConnectorId == outputConnector.id;
+                return value.originConnectorId == outputConnector.id || value.destinyConnectorId == outputConnector.id;
             });
-            for (let _connection of _connections) {
+            for (let _connection of _connections)
                 setConnectionState(_connection, active);
-            }
         }
     })
 ];
@@ -301,7 +326,7 @@ function getDescriptor(dataCode) {
  */
 function getConnection(connectionId) {
     return connections.filter((value) => {
-        value.connectionId == connectionId
+        return value.connectionId == connectionId
     })[0];
 }
 
@@ -622,21 +647,22 @@ function selectConnector(connector) {
                     selectConnector(null);
                     return;
                 }
+                //
+                currentConnection.destinyId = futureDestinyId;
+                currentConnection.destinyConnectorId = connector.id;
+                currentConnection.destinyIndex = futureDestinyIndex;
                 // Defining the Input Connector at Connection
                 if (isOriginInput) {
                     currentConnection.inputConnectorId = currentConnection.originConnectorId;
                 } else {
                     currentConnection.inputConnectorId = currentConnection.destinyConnectorId;
                 }
-                //
-                currentConnection.destinyId = futureDestinyId;
-                currentConnection.destinyConnectorId = connector.id;
-                currentConnection.destinyIndex = futureDestinyIndex;
                 // Connection done
                 connections.push(currentConnection);
                 buildConnection(currentConnection);
                 // Reset the connect operation and focus mainField to remove any :hover at mobile platforms
                 selectConnector(null);
+                selectConnection(null);
             }
         } else {
             currentConnection.originId = connector.parentElement.id;
@@ -661,12 +687,18 @@ function buildConnection(connection) {
     let divs = [div1, div2, div3];
     let divIndex = 0;
     for (let div of divs) {
-        let mo = new MutationObserver(handleConnectionElectricChange);
-        mo.observe(div, {
-            attributeFilter: [connectionElectrifiedAttribute]
-        });
+        /**
+         * This code is going to add mutation observer only to the first DIV, it means the changes will be "reactive" only when the first DIV is changed, it makes the code execution fall to 1/3 than without the IF clause
+         */
+        if (divIndex == 0) {
+
+            let mo = new MutationObserver(handleConnectionElectricChange);
+            mo.observe(div, {
+                attributeFilter: [connectionElectrifiedAttribute]
+            });
+        }
         div.addEventListener("click", handleConnectionClick);
-        div.classList.add(connection.connectionId);
+        div.setAttribute(connectionIdAttribute, connection.connectionId);
         div.setAttribute(connectionIndexAttribute, divIndex++);
         mainField.appendChild(div);
     }
@@ -680,13 +712,14 @@ function buildConnection(connection) {
  * @param {Boolean} active 
  */
 function setConnectionState(_connection, active) {
-    let _elements = Array.from(document.querySelectorAll(`.${_connection.connectionId}`));
+    let _elements = getConnectionElements(_connection.connectionId);
     for (let _element of _elements) {
         if (active)
             _element.setAttribute(connectionElectrifiedAttribute, true);
         else
             _element.setAttribute(connectionElectrifiedAttribute, false);
     }
+    _connection.active = active;
 }
 
 /**
@@ -694,18 +727,14 @@ function setConnectionState(_connection, active) {
  * @param {Array} mutations  
  */
 function handleConnectionElectricChange(mutations) {
-    console.log("mudou");
     /**
-     * @type {CircuitConnection}
+     * @type {MutationRecord}
      */
-    let _connection;
-    for (let mutationIndex in mutations) {
-        /**
-         * @type {MutationRecord}
-         */
-        let mutation = mutations[mutationIndex];
-        
-    }
+    let mutation = mutations[0];
+    let _connection = getConnection(mutation.target.getAttribute(connectionIdAttribute));
+    let destinyElement = document.getElementById(_connection.inputConnectorId).parentElement;
+    let destinyDescriptor = getDescriptor(destinyElement.getAttribute(dataCodeAttribute));
+    destinyDescriptor.updateOutput(destinyElement);
 }
 
 /**
@@ -713,12 +742,7 @@ function handleConnectionElectricChange(mutations) {
  * @param {MouseEvent} ev 
  */
 function handleConnectionClick(ev) {
-    let connectionId;
-    for (let className of this.classList) {
-        if (className.indexOf(`${connectionClass}-`) != -1 && Number.parseInt(className.substr(connectionClass.length + 1))) {
-            connectionId = className;
-        }
-    }
+    let connectionId = ev.target.getAttribute(connectionIdAttribute);
     selectConnection(connectionId);
     ev.stopPropagation();
 }
@@ -729,7 +753,7 @@ function handleConnectionClick(ev) {
  */
 function selectConnection(connectionId) {
     if (connectionId) {
-        let divs = Array.from(document.querySelectorAll(`.${connectionId}`));
+        let divs = getConnectionElements(connectionId);
         if (currentConnection.connectionId == connectionId) {
             // Nothing here...
         } else {
@@ -766,7 +790,7 @@ function updateConnection(connection) {
     var mainBounds = mainField.getBoundingClientRect();
     let invertVertically = false,
         invertHorizontally = false;
-    let divs = Array.from(document.getElementsByClassName(connection.connectionId));
+    let divs = getConnectionElements(connection.connectionId);
     let div1 = divs.filter((value) => {
         return value.getAttribute(connectionIndexAttribute) == "0";
     })[0];
@@ -856,6 +880,59 @@ function updateConnection(connection) {
     div1.classList.add(connectionClass);
     div2.classList.add(connectionClass);
     div3.classList.add(connectionClass);
+}
+
+/**
+ * Get all elements that compose a connection with the supplied Identification
+ * @param {String} connectionId 
+ * @returns {Array<HTMLDivElement>}
+ */
+function getConnectionElements(connectionId) {
+    return Array.from(document.querySelectorAll(`div[${connectionIdAttribute}="${connectionId}"]`));
+}
+
+/**
+ * Turns a collection of input connectors (HTMLDivElements) into a collection of booleans (true or false) according to if they are receiving electric energy of if they don't do
+ * @param {Array<HTMLDivElement>} connectors 
+ */
+function getConnectorsStates(connectors) {
+    /**
+     * @type {Array<Array<CircuitConnection>>}
+     */
+    let _connections = [];
+    for (let inputConnector of connectors) {
+        _connections.splice(_connections.length, 0, connections.filter((value) => {
+            return value.destinyConnectorId == inputConnector.id || value.originConnectorId == inputConnector.id;
+        }));
+    }
+    /**
+     * @type {Array<Boolean>}
+     */
+    let result = [];
+    for (let _connectionGroup of _connections) {
+        let _result = false;
+        for (let _connection of _connectionGroup) {
+            _result |= _connection.active;
+        }
+        result.push(_result);
+    }
+    return result;
+}
+
+/**
+ * Set all connections bound to this connector to the state supplied at @active parameter
+ * @param {HTMLElement} connector 
+ * @param {Boolean} active 
+ */
+function setConnectorConnectionsState(connector, active) {
+    let _connections = connections.filter((value) => {
+        return value.destinyConnectorId == connector.id || value.originConnectorId == connector.id;
+    });
+    console.log(_connections);
+    //
+    for(let _connection of _connections) {
+        setConnectionState(_connection, active);
+    }
 }
 
 // Utilities
