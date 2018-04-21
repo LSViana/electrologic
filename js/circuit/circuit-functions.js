@@ -111,6 +111,11 @@ function removeConnection(connection) {
     for (let div of divs) {
         div.remove();
     }
+    // Updating INPUT side about the changes
+    let inputElement = document.getElementById(document.getElementById(connection.inputConnectorId).parentElement.id);
+    let descriptor = getDescriptor(inputElement.getAttribute(dataCodeAttribute));
+    descriptor.updateOutput(inputElement);
+    // Deselecting any connection
     selectConnection(null);
 }
 
