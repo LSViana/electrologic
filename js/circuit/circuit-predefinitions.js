@@ -60,6 +60,72 @@ const circuitDescriptors = [
             }, inputStats[0]);
         });
     }),
+    new CircuitElementDescriptor("or", "./svg/or-gate.svg", "OR Gate", [{
+            x: "14%",
+            y: "41%",
+            input: true
+        },
+        {
+            x: "14%",
+            y: "60%",
+            input: true
+        },
+        {
+            x: "86%",
+            y: "50%",
+            input: false
+        }
+    ], function (element) {
+        manageLogicGateChanges(this, element, (inputStats) => {
+            return inputStats.reduce((previous, current) => {
+                return previous || current;
+            }, inputStats[0]);
+        });
+    }),
+    new CircuitElementDescriptor("nand", "./svg/nand-gate.svg", "NAND Gate", [{
+            x: "14%",
+            y: "41%",
+            input: true
+        },
+        {
+            x: "14%",
+            y: "60%",
+            input: true
+        },
+        {
+            x: "86%",
+            y: "50%",
+            input: false
+        }
+    ], function (element) {
+        manageLogicGateChanges(this, element, (inputStats) => {
+            return !(inputStats.reduce((previous, current) => {
+                return previous && current;
+            }, inputStats[0]));
+        });
+    }),
+    new CircuitElementDescriptor("nor", "./svg/nor-gate.svg", "NOR Gate", [{
+            x: "14%",
+            y: "41%",
+            input: true
+        },
+        {
+            x: "14%",
+            y: "60%",
+            input: true
+        },
+        {
+            x: "86%",
+            y: "50%",
+            input: false
+        }
+    ], function (element) {
+        manageLogicGateChanges(this, element, (inputStats) => {
+            return !(inputStats.reduce((previous, current) => {
+                return previous || current;
+            }, inputStats[0]));
+        });
+    }),
     new CircuitElementDescriptor("simple-switch", "./svg/simple-switch.svg", "Simple Switch", [{
             simpleButton: true,
             x: "37%",

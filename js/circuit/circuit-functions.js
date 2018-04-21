@@ -37,9 +37,11 @@ function initializeWindow() {
          */
         let dataCode = value.getAttribute(dataCodeAttribute);
         let elementDescriptor = getDescriptor(dataCode);
-        value.id = getId(dataCode);
-        value.setAttribute(elementDemonstrationClass, true);
-        buildElement(value, elementDescriptor);
+        if (elementDescriptor) {
+            value.id = getId(dataCode);
+            value.setAttribute(elementDemonstrationClass, true);
+            buildElement(value, elementDescriptor);
+        }
     });
     // Initializing Circuit Element factory
     circuitElements.forEach((value) => {
@@ -511,6 +513,11 @@ function buildConnection(connection) {
     }
     //#region DIV1
     updateConnection(connection);
+    // Calling the update output at the connection output side to avoid non-reactive behaviour at first moment of connection
+    let inputConnector = document.getElementById(connection.inputConnectorId);
+    let outputElement = document.getElementById(inputConnector.parentElement.id == connection.originId ? connection.destinyId : connection.originId);
+    let descriptor = getDescriptor(outputElement.getAttribute(dataCodeAttribute));
+    descriptor.updateOutput(outputElement);
 }
 
 /**
