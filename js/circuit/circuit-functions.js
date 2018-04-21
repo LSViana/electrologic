@@ -107,7 +107,7 @@ function removeConnection(connection) {
         return result;
     })[0];
     connections.splice(_connectionIndex, 1);
-    let divs = Array.from(document.querySelectorAll(`.${connection.connectionId}`));
+    let divs = getConnectionElements(`${connection.connectionId}`);
     for (let div of divs) {
         div.remove();
     }
