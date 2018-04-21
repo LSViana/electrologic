@@ -1,203 +1,3 @@
-// Types and Classes Definitions
-const connectorClass = "connector";
-const simpleButtonClass = "simple-button";
-const connectionClass = "connection";
-const activeClass = "active";
-const activeConnectionClass = "connection-active";
-const dataCodeAttribute = "data-code";
-const mainFieldInsertingClass = "main-field-inserting";
-const activeElementClass = "element-active";
-const elementDemonstrationClass = "demo";
-// Attributes
-const connectionIdAttribute = "connection-id";
-const connectionElectrifiedAttribute = "connection-electrified";
-const connectorIndexAttribute = "data-connector-index";
-const connectionIndexAttribute = "data-connection-index";
-// Extras
-const connectionWidth = 12;
-const connectionWidthText = `${connectionWidth}px`;
-// Dummy element used to hide Drag and Drop previews
-const dummyElement = document.createElement("div");
-dummyElement.style.position = "absolute";
-dummyElement.style.width = dummyElement.style.height = "1px";
-dummyElement.style.left = dummyElement.style.top = "-1px";
-document.body.appendChild(dummyElement);
-
-/**
- * Class to represent circuit element
- */
-class CircuitElement {
-    /**
-     * Standard constructor to CircuitElement to keep description and element representing it
-     * @param {HTMLElement} element 
-     * @param {CircuitElementDescriptor} circuitDescriptor 
-     */
-    constructor(element, circuitDescriptor) {
-        this.element = element;
-        this.circuitDescriptor = circuitDescriptor;
-    }
-}
-/**
- * Class to describe how to build circuit elements
- */
-class CircuitElementDescriptor {
-    /**
-     * Creating a new Circuit Element Descriptor allows to build elements at DOM
-     * @param {String} gateCode 
-     * @param {String} gatePath 
-     * @param {String} description 
-     * @param {Array} additionals 
-     * @param {Function} updateOutput
-     */
-    constructor(gateCode, gatePath, description, additionals, updateOutput) {
-        this.gateCode = gateCode;
-        this.gatePath = gatePath;
-        this.description = description;
-        this.additionals = additionals;
-        this.updateOutput = updateOutput;
-    }
-
-    /**
-     * @param {HTMLElement} element
-     * @returns {Array<HTMLDivElement>}
-     */
-    getOutputConnectors(element) {
-        return Array.from(element.children).filter((value) => {
-            return value.classList.contains(connectorClass) && (this.additionals[value.getAttribute(connectorIndexAttribute)].input === false);
-        });
-    }
-
-    /**
-     * @param {HTMLElement} element
-     * @returns {Array<HTMLDivElement>}
-     */
-    getInputConnectors(element) {
-        return Array.from(element.children).filter((value) => {
-            return value.classList.contains(connectorClass) && (this.additionals[value.getAttribute(connectorIndexAttribute)].input === true);
-        });
-    }
-}
-class CircuitConnection {
-    /**
-     * Creating a new Circuit Connection that makes the bindings between circuit elements
-     * @param {String} connectionId
-     * @param {String} originId
-     * @param {Number} originConnectorId 
-     * @param {Number} originIndex 
-     * @param {String} destinyId 
-     * @param {Number} destinyConnectorId 
-     * @param {String} inputConnectorId
-     * @param {Number} destinyIndex
-     * @param {Number} alignment
-     * @param {Boolean} active
-     */
-    constructor(connectionId, originId, originConnectorId, originIndex, destinyId, destinyConnectorId, inputConnectorId, destinyIndex, alignment = .5, active = false) {
-        this.connectionId = connectionId;
-        this.originId = originId;
-        this.originConnectorId = originConnectorId;
-        this.originIndex = originIndex;
-        this.destinyId = destinyId;
-        this.destinyConnectorId = destinyConnectorId;
-        this.inputConnectorId = inputConnectorId;
-        this.destinyIndex = destinyIndex;
-        this.alignment = alignment;
-        this.active = active;
-    }
-}
-
-// Globals
-/**
- * @type {CircuitElement}
- */
-var currentInsertingElement = new CircuitElement();
-/**
- * @type {HTMLElement}
- */
-var currentFieldElement;
-/**
- * @type {CircuitConnection}
- */
-var currentConnection = new CircuitConnection();
-/**
- * @type {Map<String, CircuitElementDescriptor>}
- */
-var elements = new Map();
-/**
- * @type {Array<CircuitConnection>}
- */
-var connections = new Array();
-/**
- * @type {HTMLElement}
- */
-var mainField = {};
-/**
- * @type {HTMLElement}
- */
-var connectionOptions = {};
-/**
- * @type {HTMLElement}
- */
-var elementOptions = {};
-//
-var lastDragButtons = 0,
-    lastPosX = 0,
-    lastPosY = 0;
-
-// Available Circuit Elements
-const circuitDescriptors = [
-    new CircuitElementDescriptor("and", "./svg/and-gate.svg", "AND Gate", [{
-            x: "14%",
-            y: "41%",
-            input: true
-        },
-        {
-            x: "14%",
-            y: "60%",
-            input: true
-        },
-        {
-            x: "86%",
-            y: "50%",
-            input: false
-        }
-    ], function (element) {
-        let inputConnectors = this.getInputConnectors(element);
-        if (inputConnectors.length > 0) {
-            let inputStats = getConnectorsStates(inputConnectors);
-            let outputConnectors = this.getOutputConnectors(element);
-                let result = inputStats.reduce((previous, current) => {
-                    return previous && current;
-                }, inputStats[0]);
-                for(let outputConnector of outputConnectors) {
-                    setConnectorConnectionsState(outputConnector, result);
-                }
-        }
-    }),
-    new CircuitElementDescriptor("simple-switch", "./svg/simple-switch.svg", "Simple Switch", [{
-            simpleButton: true,
-            x: "37%",
-            y: "50%",
-        },
-        {
-            x: "81%",
-            y: "50%",
-            input: false
-        }
-    ], function (element) {
-        let active = element.getAttribute(activeClass) == "true";
-        let outputConnectors = this.getOutputConnectors(element);
-        for (let outputConnector of outputConnectors) {
-            let _connections = connections.filter((value) => {
-                return value.originConnectorId == outputConnector.id || value.destinyConnectorId == outputConnector.id;
-            });
-            for (let _connection of _connections)
-                setConnectionState(_connection, active);
-        }
-    })
-];
-
-var elementIds = {};
-
 /**
  * Function to load element IDs to be used as identity
  */
@@ -210,6 +10,8 @@ function loadElementIds() {
     elementIds[connectorClass] = 1;
     elementIds[connectionClass] = 1;
     elementIds[simpleButtonClass] = 1;
+    elementIds[lampClass] = 1;
+    elementIds[lampLightClass] = 1;
 };
 loadElementIds();
 
@@ -219,7 +21,7 @@ function initializeWindow() {
     // Getting Main Field to configure element insertion
     mainField = document.querySelector("#main-field");
     mainField.onfocus = () => {
-        console.log("oi")
+        console.log("oi");
     };
     connectionOptions = document.querySelector("#connection-options");
     initializeConnectionOptions(connectionOptions);
@@ -408,13 +210,13 @@ function buildElement(element, descriptor) {
     // Creating <div> connectors
     for (let additionalIndex in descriptor.additionals) {
         let additional = descriptor.additionals[additionalIndex];
+        let div = document.createElement("div");
+        div.style.position = "absolute";
+        element.appendChild(div);
         // Button
-        if (additional.simpleButton) {
-            let div = document.createElement("div");
+        if (additional.simpleButton != undefined) {
             div.id = getId(simpleButtonClass);
-            div.style.position = "absolute";
             div.classList.add(simpleButtonClass);
-            element.appendChild(div);
             additionalRectangle = div.getBoundingClientRect();
             div.style.left = `calc(${additional.x} - ${additionalRectangle.width / 2}px)`;
             div.style.top = `calc(${additional.y} - ${additionalRectangle.height / 2}px)`;
@@ -423,13 +225,18 @@ function buildElement(element, descriptor) {
             // Adding button off attribute
             element.setAttribute(activeClass, false);
         }
+        // Lamp
+        else if (additional.lamp != undefined) {
+            div.id = getId(lampLightClass);
+            div.classList.add(lampLightClass);
+            additionalRectangle = div.getBoundingClientRect();
+            div.style.left = `calc(${additional.x} - ${additionalRectangle.width / 2}px)`;
+            div.style.top = `calc(${additional.y} - ${additionalRectangle.height / 2}px)`;
+        }
         // Standard Connectors
         else {
-            let div = document.createElement("div");
             div.id = getId(connectorClass);
-            div.style.position = "absolute";
             div.classList.add(connectorClass);
-            element.appendChild(div);
             additionalRectangle = div.getBoundingClientRect();
             div.style.left = `calc(${additional.x} - ${additionalRectangle.width / 2}px)`;
             div.style.top = `calc(${additional.y} - ${additionalRectangle.height / 2}px)`;
@@ -928,10 +735,30 @@ function setConnectorConnectionsState(connector, active) {
     let _connections = connections.filter((value) => {
         return value.destinyConnectorId == connector.id || value.originConnectorId == connector.id;
     });
-    console.log(_connections);
     //
-    for(let _connection of _connections) {
+    for (let _connection of _connections) {
         setConnectionState(_connection, active);
+    }
+}
+
+/**
+ * This function manages the input and output operationss to logic gates with many INPUT and only one OUTPUT (or multiple outputs with the same result)
+ * @param {CircuitElementDescriptor} descriptor 
+ * @param {HTMLElement} element 
+ * @param {Function} evaluator This evaluator will receive an array of Boolean values with the states of electricity at INPUT CONNECTORS and it must return a Boolean value indicating if there will be electricity at the OUTPUT CONNECTOR
+ */
+function manageLogicGateChanges(descriptor, element, evaluator) {
+    let inputConnectors = descriptor.getInputConnectors(element);
+    if (inputConnectors.length > 0) {
+        let inputStats = getConnectorsStates(inputConnectors);
+        let outputConnectors = descriptor.getOutputConnectors(element);
+        let result = evaluator(inputStats);
+        // let result = inputStats.reduce((previous, current) => {
+        //     return previous && current;
+        // }, inputStats[0]);
+        for (let outputConnector of outputConnectors) {
+            setConnectorConnectionsState(outputConnector, result);
+        }
     }
 }
 
