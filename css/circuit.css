@@ -30,12 +30,17 @@
     width: 273px;
     border-radius: var(--medium-margin);
     background-color: lightgray;
+    margin: var(--big-margin);
     /* filter: saturate(0); */
     transition: background-color var(--small-interval) ease-in;
 }
 
 .circuit-element:not(:first-child) {
     margin-top: var(--big-margin);
+}
+
+.circuit-element:last-child {
+    margin-bottom: var(--big-margin);
 }
 
 .circuit-element:hover {

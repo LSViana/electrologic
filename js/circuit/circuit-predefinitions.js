@@ -126,6 +126,46 @@ const circuitDescriptors = [
             }, inputStats[0]));
         });
     }),
+    new CircuitElementDescriptor("xor", "./svg/xor-gate.svg", "XOR Gate", [{
+            x: "14%",
+            y: "41%",
+            input: true
+        },
+        {
+            x: "14%",
+            y: "60%",
+            input: true
+        },
+        {
+            x: "86%",
+            y: "50%",
+            input: false
+        }
+    ], function (element) {
+        manageLogicGateChanges(this, element, (inputStats) => {
+            return inputStats[0] != inputStats[1];
+        });
+    }),
+    new CircuitElementDescriptor("xnor", "./svg/xnor-gate.svg", "XNOR Gate", [{
+            x: "14%",
+            y: "41%",
+            input: true
+        },
+        {
+            x: "14%",
+            y: "60%",
+            input: true
+        },
+        {
+            x: "86%",
+            y: "50%",
+            input: false
+        }
+    ], function (element) {
+        manageLogicGateChanges(this, element, (inputStats) => {
+            return !(inputStats[0] != inputStats[1]);
+        });
+    }),
     new CircuitElementDescriptor("simple-switch", "./svg/simple-switch.svg", "Simple Switch", [{
             simpleButton: true,
             x: "37%",
