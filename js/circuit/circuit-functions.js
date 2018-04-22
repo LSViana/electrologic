@@ -90,6 +90,7 @@ function removeElement(element) {
     for (let connection of connectionsAssociated) {
         removeConnection(connection);
     }
+    elements.delete(element.id);
     // Removing the current connection element from DOM
     element.remove();
 }
@@ -99,6 +100,7 @@ function removeElement(element) {
  * @param {CircuitConnection} connection 
  */
 function removeConnection(connection) {
+    console.log(connection.connectionId);
     let _connectionIndex = -1;
     let _currentConnection = connections.filter((value, index) => {
         let result = value.connectionId == connection.connectionId;
@@ -174,6 +176,14 @@ function getId(dataCode) {
 }
 
 /**
+ * Return a positive whole number as ID to the corresponding element code WITHOUT INCREMENTING IT
+ * @param {String} dataCode
+ */
+function peekId(dataCode) {
+    return `${dataCode}-${elementIds[dataCode.toLowerCase()]}`;
+}
+
+/**
  * Element used as shape to create another circuit elements
  * @param {HTMLElement} element 
  */
@@ -184,7 +194,7 @@ function buildElementFactory(element) {
 }
 
 function startInsertingElement(element) {
-    currentInsertingElement.circuitDescriptor = elements[element.id];
+    currentInsertingElement.circuitDescriptor = elements.get(element.id);
     currentInsertingElement.element = element;
 }
 
@@ -264,7 +274,7 @@ function buildElement(element, descriptor) {
     }
     //
     if (element.id) {
-        elements[element.id] = descriptor;
+        elements.set(element.id, descriptor);
     }
 }
 
@@ -793,15 +803,28 @@ function getCurrentCircuit() {
      */
     let _elements = [];
     // Getting Elements
-    for (let key in elements) {
-        let _element = document.getElementById(key);
-        if (!(_element.getAttribute(elementDemonstrationClass) != null)) {
-            _elements.push(new CircuitElement(_element.id, _element.getAttribute(dataCodeAttribute), _element.getAttribute("style")));
+    for (let key of elements) {
+        let element = document.getElementById(key["0"]);
+        if (element && element.getAttribute(elementDemonstrationClass) == null) {
+            let additionals = Array.from(document.querySelectorAll(`#${element.id} *`))
+            .filter((value) => { return Boolean(value.id); })
+            .map((value) => value.id);
+            let ce = new CircuitElement(element.id, element.getAttribute(dataCodeAttribute), element.getAttribute("style"), additionals);
+            _elements.push(ce);
         }
     }
     let result = new Circuit(null, _elements, connections);
     //
     return result;
+}
+
+/**
+ * Clear all selections
+ */
+function deselectAll() {
+    selectConnection(null);
+    selectConnector(null);
+    selectElement(null);
 }
 
 // Utilities

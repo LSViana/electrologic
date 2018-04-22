@@ -22,12 +22,14 @@ class CircuitElement {
      * Standard constructor to CircuitElement to keep description and element representing it
      * @param {String} id
      * @param {String} ["data-code"]
-     * @param {String} style 
+     * @param {String} style
+     * @param {Array<String>} additionals
      */
-    constructor(id, dataCode, style) {
+    constructor(id, dataCode, style, additionals) {
         this.id = id;
         this["data-code"] = dataCode;
         this.style = style;
+        this.additionals = additionals;
     }
 }
 /**

@@ -18,7 +18,7 @@ var elements = new Map();
 /**
  * @type {Array<CircuitConnection>}
  */
-var connections = new Array();
+var connections = [];
 /**
  * @type {HTMLElement}
  */
